@@ -1,0 +1,87 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: petsystem-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: petsystem_dev
+      MYSQL_DATABASE: pet_system
+      MYSQL_USER: petsystem
+      MYSQL_PASSWORD: petsystem_pass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - petsystem_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+      interval: 10s
+    command:
+      - --default-authentication-plugin=mysql_native_password
+      - --sql-mode=
+
+  backend:
+    build:
+      context: ./petSystemPy
+      dockerfile: Dockerfile
+    container_name: petsystem-backend
+    environment:
+      FLASK_ENV: development
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASS: petsystem_dev
+      DB_NAME: pet_system
+      SECRET_KEY: dev-secret-key-change-in-production
+      SERVER_PORT: 5000
+      FLASK_APP: app.py
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./petSystemPy:/app
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - petsystem_network
+    command: flask run --host=0.0.0.0 --port=5000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      timeout: 10s
+      retries: 5
+      interval: 10s
+
+  frontend:
+    build:
+      context: ./petSystemRe
+      dockerfile: Dockerfile
+    container_name: petsystem-frontend
+    environment:
+      VITE_API_URL: http://localhost:5000
+    ports:
+      - "5173:80"
+    volumes:
+      - ./petSystemRe/src:/app/src
+      - ./petSystemRe/index.html:/app/index.html
+      - ./petSystemRe/vite.config.js:/app/vite.config.js
+    depends_on:
+      - backend
+    networks:
+      - petsystem_network
+    healthcheck:
+      test: ["CMD", "sh", "-c", "test -f /usr/share/nginx/html/index.html"]
+      timeout: 10s
+      retries: 5
+      interval: 10s
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  petsystem_network:
+    driver: bridge
