@@ -1,7 +1,7 @@
 import React from 'react';
 import { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Clock, Calendar as CalendarIcon } from 'lucide-react';
-import AppointmentCard from '../../components/Card';
+import AppointmentCard from '../../components/AppointmentCard';
 
 const ViewAgenda = ({ appointments, loading, onNewAppointment }) => {
   const [viewMode, setViewMode] = useState('mes'); 

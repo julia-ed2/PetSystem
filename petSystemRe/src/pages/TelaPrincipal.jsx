@@ -1,14 +1,13 @@
 import React from 'react';
 import { useState, useMemo } from 'react';
-import Sidebar from '../components/Menu';
+import { useNavigate } from 'react-router-dom';
 import { Button, QuickAction } from '../components/Button';
-import AppointmentCard from '../components/Card';
-import ViewAgenda from './agenda/Agenda';
+import AppointmentCard from '../components/AppointmentCard';
 import { Syringe, UserPlus, ArrowUpRight, Plus, Calendar as CalendarIcon } from 'lucide-react';
 
 
 export default function TelaPrincipal({ onGoToLogin, onGoToFormAgenda, appointments }) {
-    const [currentPage, setCurrentPage] = useState('Página Inicial');
+    const navigate = useNavigate();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingPostit, setEditingPostit] = useState(null);
 
@@ -64,29 +63,21 @@ export default function TelaPrincipal({ onGoToLogin, onGoToFormAgenda, appointme
         setIsModalOpen(false);
     };
 
-    // EXCLUIR
+    // função de excluir 
     const handleDeletePostit = (id) => {
         setPostits(postits.filter(p => p.id !== id));
         setIsModalOpen(false);
     };
 
     return (
-        <div className="flex min-h-screen bg-[#F0F2F5]">
-            <Sidebar
-                activePage={currentPage}
-                onNavigate={setCurrentPage}
-                onLogout={onGoToLogin}
-            />
-
-            <div className="flex-1 flex overflow-hidden">
-                {currentPage === 'Página Inicial' ? (
-                    <div className="flex flex-1">
+        <div className="flex-1 flex overflow-hidden">
+            <div className="flex flex-1">
                         <div className="flex-1 p-8 overflow-y-auto">
                             <section className="bg-white rounded-3xl p-8 shadow-sm mb-8">
                                 <h3 className="text-black font-bold text-xl mb-6">Atalhos</h3>
                                 <div className="flex flex-wrap gap-4">
-                                    <QuickAction label="Registrar vacina" color="bg-[#D84382]" icon={Syringe} onClick={() => setCurrentPage('Vacinação')} />
-                                    <QuickAction label="Cadastrar cliente" color="bg-[#D84382]" icon={UserPlus} onClick={() => setCurrentPage('Cadastros')} />
+                                    <QuickAction label="Registrar vacina" color="bg-[#D84382]" icon={Syringe} onClick={() => navigate('/dashboard/vacinacao')} />
+                                    <QuickAction label="Cadastrar cliente" color="bg-[#D84382]" icon={UserPlus} onClick={() => navigate('/dashboard/cadastros')} />
                                     <QuickAction label="Registrar saída" color="bg-[#D84382]" icon={ArrowUpRight} />
                                     <QuickAction label="Lançar serviço" color="bg-[#D84382]" icon={Plus} />
                                 </div>
@@ -126,7 +117,7 @@ export default function TelaPrincipal({ onGoToLogin, onGoToFormAgenda, appointme
                         <aside className="w-80 bg-white p-6 shadow-sm border-l border-gray-100 overflow-y-auto">
                             <h3 className="text-[#8A2BE2] font-bold text-lg mb-6 text-center">Hoje - 03 de Abril</h3>
                             {todayAppointments.map(app => <AppointmentCard key={app.id} {...app} />)}
-                            <button onClick={() => setCurrentPage('Agenda')} className="mt-6 w-full bg-[#D81B60] text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-pink-100 hover:bg-[#b0164e] transition-all cursor-pointer">
+                            <button onClick={() => navigate('/dashboard/agenda')} className="mt-6 w-full bg-[#D81B60] text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-pink-100 hover:bg-[#b0164e] transition-all cursor-pointer">
                                 <CalendarIcon size={20} /> Agenda completa
                             </button>
 
@@ -134,20 +125,7 @@ export default function TelaPrincipal({ onGoToLogin, onGoToFormAgenda, appointme
 
                         </aside>
                     </div>
-                ) : currentPage === 'Agenda' ? (
-                    <ViewAgenda
-                        appointments={appointments}
-                        onNewAppointment={onGoToFormAgenda}
-                    />
-                ) : (
-                    <div className="flex-1 p-8">
-                        <div className="bg-white h-full rounded-3xl p-8 shadow-sm flex flex-col items-center justify-center">
-                            <h2 className="text-3xl font-bold text-[#8A2BE2] mb-4">Tela de {currentPage}</h2>
-                            <button onClick={() => setCurrentPage('Página Inicial')} className="bg-gray-100 px-6 py-2 rounded-full font-bold text-gray-600 hover:bg-gray-200 transition-colors">Voltar</button>
-                        </div>
-                    </div>
-                )}
-            </div>
+
 
             {/* MODAL DE EDIÇÃO / CRIAÇÃO */}
             {isModalOpen && (

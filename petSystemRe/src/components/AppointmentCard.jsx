@@ -38,3 +38,4 @@ const AppointmentCard = ({ appointment, type, time, patient, procedure, doctor, 
 };
 
 export default AppointmentCard;
+

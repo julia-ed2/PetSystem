@@ -23,26 +23,30 @@ const Login = ({ onGoToCadastroPage, onGoToTelaPrincipal }) => {
     async function handleSubmit(e) {
         e.preventDefault();
 
-        try {
-            setLoading(true);
-            setError("");
+        /* Comentado para visualizar telas. REMOVER EM PRODUÇÃO
+         try {
+             setLoading(true);
+             setError("");
+        
+             const response = await loginRequest(email, password);
+             const result = await response.json();
+        
+             if (!response.ok) {
+                 setError(result.message || "Erro ao fazer login");
+                 return;
+             }
+        
+             console.log("Login OK:", result);
+             onGoToTelaPrincipal();
+        
+         } catch {
+             setError("Erro de conexão com o servidor");
+         } finally {
+             setLoading(false);
+         }
 
-            const response = await loginRequest(email, password);
-            const result = await response.json();
-
-            if (!response.ok) {
-                setError(result.message || "Erro ao fazer login");
-                return;
-            }
-
-            console.log("Login OK:", result);
-            onGoToTelaPrincipal();
-
-        } catch {
-            setError("Erro de conexão com o servidor");
-        } finally {
-            setLoading(false);
-        }
+        / MODO DESENVOLVIMENTO: Acesso direto */
+        onGoToTelaPrincipal();
     }
 
     return (
