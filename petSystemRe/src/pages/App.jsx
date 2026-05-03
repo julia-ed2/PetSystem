@@ -12,7 +12,7 @@ import Sidebar from '../components/Menu';
 import ViewProntuarios from './prontuario/Prontuario';
 import ProntuarioDetalhe from './prontuario/ProntuarioDetalhe';
 import EditarPet from './prontuario/EditarPet';
-import NovoRegistro from '../components/prontuario/NovoRegistro';
+
 
 export default function App() {
     const [appointments, setAppointments] = useState([
@@ -56,7 +56,6 @@ export default function App() {
                     <Route path="prontuarios" element={<ProntuariosWrapper />} />
                     <Route path="prontuarios/:id" element={<ProntuarioDetalheWrapper />} />
                     <Route path="prontuarios/:id/editar" element={<EditarPetWrapper />} />
-                    <Route path="prontuarios/:id/novo-registro" element={<NovoRegistroWrapper />} />
                     <Route path="cadastros" element={<PlaceholderPage title="Cadastros" />} />
                     <Route path="estoque" element={<PlaceholderPage title="Estoque" />} />
                     <Route path="financeiro" element={<PlaceholderPage title="Financeiro" />} />
@@ -192,8 +191,4 @@ function ProntuarioDetalheWrapper() {
 
 function EditarPetWrapper() {
     return <EditarPet />;
-}
-
-function NovoRegistroWrapper() {
-    return <NovoRegistro />;
 }

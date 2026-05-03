@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from 'react-router-dom';
 import HistoricoCard from "../../components/prontuario/HistoricoCard";
+import NovoRegistro from "../../components/prontuario/NovoRegistro";
 
 // TESTE 
 const mockProntuario = {
@@ -105,6 +106,7 @@ export default function ProntuarioDetalhe({ prontuarioId, isAdmin = true, onVolt
     const [dados, setDados] = useState(mockProntuario); // -TROCAR POR FETCH
     const [loading, setLoading] = useState(false);
     const [filtroAtivo, setFiltroAtivo] = useState("Todos");
+    const [modalNovoRegistro, setModalNovoRegistro] = useState(false);
 
     useEffect(() => {
         if (!prontuarioId) return;
@@ -137,7 +139,36 @@ export default function ProntuarioDetalhe({ prontuarioId, isAdmin = true, onVolt
     }
 
     function handleNovoRegistro() {
-        navigate(`/dashboard/prontuarios/${prontuarioId}/novo-registro`);
+        setModalNovoRegistro(true);
+    }
+
+    function handleSalvarRegistro(novoItem) {
+        // Aqui você enviaria para a API: POST /api/prontuarios/:id/historico
+        const id = `h${Date.now()}`;
+        const [dataPart, horaPart] = (novoItem.dataHora || "").split("T");
+        const dataFormatada = dataPart
+            ? dataPart.split("-").reverse().join("/")
+            : "";
+        const horaFormatada = horaPart ? horaPart.slice(0, 5) : "";
+
+        setDados((prev) => ({
+            ...prev,
+            historico: [
+                {
+                    id,
+                    tipo: novoItem.tipo,
+                    data: dataFormatada,
+                    hora: horaFormatada,
+                    veterinario: novoItem.veterinario,
+                    descricao: novoItem.descricao,
+                    observacoes: novoItem.observacoes || "",
+                    arquivo: null,
+                    ...(novoItem.proximoReforcao && { proximoReforcao: novoItem.proximoReforcao }),
+                },
+                ...prev.historico,
+            ],
+        }));
+        setModalNovoRegistro(false);
     }
 
     function handleImprimir() {
@@ -272,6 +303,14 @@ export default function ProntuarioDetalhe({ prontuarioId, isAdmin = true, onVolt
                     Imprimir
                 </button>
             </div>
+
+            {/* ── Modal Novo Registro ──────────────────────────────────── */}
+            {modalNovoRegistro && (
+                <NovoRegistro
+                    onClose={() => setModalNovoRegistro(false)}
+                    onSave={handleSalvarRegistro}
+                />
+            )}
         </div>
     );
 }
