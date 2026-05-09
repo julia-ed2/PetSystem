@@ -1,6 +1,7 @@
 import { useState } from "react";
+import Campo from "../../components/cadastros/CampoForm";
 
-// ─── Tipos de acesso disponíveis ──────────────────────────────────────────────
+//Tipos de acesso disponíveis
 const TIPOS_ACESSO = [
   {
     value: "usuario",
@@ -14,23 +15,8 @@ const TIPOS_ACESSO = [
   },
 ];
 
-// ─── Campo de formulário reutilizável ─────────────────────────────────────────
-function Campo({ label, value, onChange, type = "text", className = "", ...props }) {
-  return (
-    <div className={className}>
-      <label className="text-sm text-gray-700 mb-1.5 block">{label}</label>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 bg-white transition-all"
-        {...props}
-      />
-    </div>
-  );
-}
 
-// ─── Componente principal ─────────────────────────────────────────────────────
+// Componente principal
 /**
  * CadastrarUsuario
  *
@@ -83,24 +69,20 @@ export default function CadastrarUsuario({ onVoltar, onSalvar }) {
           </svg>
           Voltar
         </button>
-
-        {/* Título */}
+        
         <div className="mb-7">
           <h1 className="text-2xl font-bold text-gray-900">Cadastrar Usuário</h1>
           <p className="text-sm text-gray-400 mt-1">Preencha as informações do colaborador</p>
         </div>
 
-        {/* ── Card do formulário ───────────────────────────────────────── */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-7 space-y-5">
-
-          {/* Nome completo */}
+          
           <Campo
             label="Nome completo (obrigatório):"
             value={form.nome}
             onChange={(v) => set("nome", v)}
           />
 
-          {/* CPF + Data de Nascimento */}
           <div className="grid grid-cols-2 gap-5">
             <Campo
               label="CPF (obrigatório):"
@@ -116,7 +98,6 @@ export default function CadastrarUsuario({ onVoltar, onSalvar }) {
             />
           </div>
 
-          {/* Celular + Gênero */}
           <div className="grid grid-cols-2 gap-5">
             <Campo
               label="Celular (obrigatório):"
@@ -140,7 +121,6 @@ export default function CadastrarUsuario({ onVoltar, onSalvar }) {
             </div>
           </div>
 
-          {/* Email */}
           <div className="grid grid-cols-2 gap-5">
             <Campo
               label="Email (obrigatório):"
@@ -151,7 +131,6 @@ export default function CadastrarUsuario({ onVoltar, onSalvar }) {
             />
           </div>
 
-          {/* Senha + Confirmar senha */}
           <div className="grid grid-cols-2 gap-5">
             <Campo
               label="Senha (obrigatório):"
@@ -169,7 +148,6 @@ export default function CadastrarUsuario({ onVoltar, onSalvar }) {
             />
           </div>
 
-          {/* ── Tipo de acesso ───────────────────────────────────────── */}
           <div className="pt-2">
             <p className="text-sm font-bold text-gray-800 uppercase tracking-wide mb-4">
               Tipo de Acesso (obrigatório):
@@ -210,22 +188,23 @@ export default function CadastrarUsuario({ onVoltar, onSalvar }) {
             </div>
           </div>
         </div>
-      </div>
 
-      {/* ── Footer fixo com botão cancelar e salvar ──────────────────────── */}
-      <div className="fixed bottom-0 left-0 right-0 bg-gray-50 border-t border-gray-100 flex justify-between items-center py-5 px-8">
-        <button
-          onClick={onVoltar}
-          className="text-gray-600 hover:text-gray-900 text-sm font-semibold px-5 py-3 rounded-2xl transition-colors"
-        >
-          Cancelar
-        </button>
-        <button
-          onClick={handleSalvar}
-          className="bg-purple-600 hover:bg-purple-700 text-white font-bold text-sm px-24 py-4 rounded-2xl transition-colors shadow-md"
-        >
-          Salvar
-        </button>
+        <div className="px-5">
+          <div className="bottom-0 left-0 right-0 bg-gray-50 border-t border-gray-100 flex justify-between items-center py-5 px-8">
+            <button
+              onClick={onVoltar}
+              className="bg-red-500 hover:bg-red-600 text-white font-bold text-sm px-24 py-4 rounded-2xl transition-colors shadow-md cursor-pointer"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleSalvar}
+              className="bg-pink-500 hover:bg-pink-600 text-white font-bold text-sm px-24 py-4 rounded-2xl transition-colors shadow-md cursor-pointer"
+            >
+              Salvar
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 
-// ─── Perfis de usuário de exemplo ──────────────────────────────────────────────
-// Substitua pela chamada real à API quando o backend estiver pronto.
+//  Perfis de usuário de exemplo 
 const mockPerfis = [
   {
     id: "1",
@@ -120,7 +119,7 @@ const mockPerfis = [
   },
 ];
 
-// ─── Badge de tipo de acesso ──────────────────────────────────────────────────
+// Tipo de acesso 
 function TipoBadge({ tipo }) {
   const styles = {
     Administrador: "bg-purple-100 text-purple-700 border border-purple-200",
@@ -134,7 +133,7 @@ function TipoBadge({ tipo }) {
   );
 }
 
-// ─── Card de animal ───────────────────────────────────────────────────────────
+// Card de animal
 function AnimalCard({ animal, onVerProntuario }) {
   return (
     <div
@@ -171,7 +170,7 @@ function AnimalCard({ animal, onVerProntuario }) {
   );
 }
 
-// ─── Linha de info ────────────────────────────────────────────────────────────
+
 function InfoRow({ label, value }) {
   return (
     <div>
@@ -181,7 +180,6 @@ function InfoRow({ label, value }) {
   );
 }
 
-// ─── Componente principal ─────────────────────────────────────────────────────
 /**
  * PerfilUsuario
  *
@@ -192,8 +190,8 @@ function InfoRow({ label, value }) {
  *  - onEditar: (dados) => void      → abre edição do cadastro
  *  - onVerProntuario: (animal) => void → navega para o prontuário do animal
  *
- * Quando o backend estiver pronto, descomente o useEffect abaixo
- * e substitua mockPerfil pela resposta da API.
+ * Quando o backend estiver pronto, descomentar o useEffect abaixo
+ * e substituir mockPerfil pela resposta da API.
  */
 export default function PerfilUsuario({
   usuarioId,

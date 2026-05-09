@@ -2,15 +2,14 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import FiltroDropdown from "../../components/cadastros/Filtro";
 import AcoesDropdown from "../../components/cadastros/Acoes";
 
-// ─── Tipos de acesso ──────────────────────────────────────────────────────────
+//  Tipos de acesso 
 export const TIPOS_ACESSO = {
   CLIENTE: "Cliente",
   USUARIO: "Usuário",
   ADMINISTRADOR: "Administrador",
 };
 
-// ─── Mock data ────────────────────────────────────────────────────────────────
-// Substitua pela chamada real à API quando o backend estiver pronto.
+// Mock data 
 const mockUsuarios = [
   {
     id: "1",
@@ -41,7 +40,6 @@ const mockUsuarios = [
   },
 ];
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 function badgeColor(tipo) {
   switch (tipo) {
     case TIPOS_ACESSO.ADMINISTRADOR:
@@ -53,7 +51,7 @@ function badgeColor(tipo) {
   }
 }
 
-// ─── Modal de confirmação de exclusão ────────────────────────────────────────
+// Modal de confirmação de exclusão 
 function ModalConfirmarExclusao({ usuario, onConfirmar, onCancelar }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
@@ -104,7 +102,7 @@ export default function Cadastros({
   const [filtroTipo, setFiltroTipo] = useState("Todos");
   const [usuarioParaExcluir, setUsuarioParaExcluir] = useState(null);
 
-  // ── Carregar dados ──────────────────────────────────────────────────────
+  //Carregar dados 
   useEffect(() => {
     // Simulação de fetch — substitua pelo fetch real:
     // fetch(`/api/cadastros?isAdmin=${isAdmin}`)
@@ -123,7 +121,7 @@ export default function Cadastros({
     }, 400);
   }, [isAdmin]);
 
-  // ── Filtros e busca ─────────────────────────────────────────────────────
+
   const usuariosFiltrados = usuarios.filter((u) => {
     const termoBusca = busca.toLowerCase();
     const matchBusca =
@@ -139,7 +137,7 @@ export default function Cadastros({
     return matchBusca && matchTipo;
   });
 
-  // ── Handlers ────────────────────────────────────────────────────────────
+  
   function handleEditar(usuario) {
     // TODO: abrir modal de edição ou navegar para página de edição
     console.log("Editar:", usuario);
@@ -155,10 +153,8 @@ export default function Cadastros({
     setUsuarioParaExcluir(null);
   }
 
-  // ── Render ───────────────────────────────────────────────────────────────
   return (
     <div className="flex-1 min-h-screen bg-gray-50">
-      {/* ── Header com botões ─────────────────────────────────────────── */}
       <div className="flex justify-end items-center gap-3 px-8 py-4 bg-white border-b border-gray-100 shadow-sm">
         <button
           onClick={onCadastrarCliente}
@@ -183,7 +179,6 @@ export default function Cadastros({
         )}
       </div>
 
-      {/* ── Conteúdo ──────────────────────────────────────────────────── */}
       <div className="px-8 py-6 max-w-5xl w-full mx-auto">
         <h1 className="text-xl font-bold text-gray-900 mb-5">Usuários Cadastrados</h1>
 
@@ -249,7 +244,6 @@ export default function Cadastros({
                   i < usuariosFiltrados.length - 1 ? "border-b border-gray-50" : ""
                 }`}
               >
-                {/* Nome */}
                 <button
                   type="button"
                   onClick={() => onVerPerfil?.(u.id)}
@@ -257,8 +251,6 @@ export default function Cadastros({
                 >
                   {u.nome}
                 </button>
-
-                {/* Animais */}
                 <div className="flex-1">
                   {u.animais.length > 0 ? (
                     <button
@@ -299,7 +291,7 @@ export default function Cadastros({
         )}
       </div>
 
-      {/* ── Modal de exclusão ─────────────────────────────────────────── */}
+      {/* Modal de exclusão */}
       {usuarioParaExcluir && (
         <ModalConfirmarExclusao
           usuario={usuarioParaExcluir}
