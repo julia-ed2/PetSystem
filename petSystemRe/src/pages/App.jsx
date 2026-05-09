@@ -12,6 +12,10 @@ import Sidebar from '../components/Menu';
 import ViewProntuarios from './prontuario/Prontuario';
 import ProntuarioDetalhe from './prontuario/ProntuarioDetalhe';
 import EditarPet from './prontuario/EditarPet';
+import Cadastros from './cadastros/Cadastros';
+import CadastrarCliente from './cadastros/CadastrarCliente';
+import CadastrarUsuario from './cadastros/CadastroUsuario';
+import PerfilUsuario from './cadastros/PerfilUsuario';
 
 
 export default function App() {
@@ -56,7 +60,10 @@ export default function App() {
                     <Route path="prontuarios" element={<ProntuariosWrapper />} />
                     <Route path="prontuarios/:id" element={<ProntuarioDetalheWrapper />} />
                     <Route path="prontuarios/:id/editar" element={<EditarPetWrapper />} />
-                    <Route path="cadastros" element={<PlaceholderPage title="Cadastros" />} />
+                    <Route path="cadastros" element={<CadastrosWrapper />} />
+                    <Route path="cadastros/novo" element={<CadastrarClienteWrapper />} />
+                    <Route path="cadastros/novo-usuario" element={<CadastrarUsuarioWrapper />} />
+                    <Route path="cadastros/:id" element={<PerfilUsuarioWrapper />} />
                     <Route path="estoque" element={<PlaceholderPage title="Estoque" />} />
                     <Route path="financeiro" element={<PlaceholderPage title="Financeiro" />} />
                 </Route>
@@ -137,6 +144,62 @@ function TelaPrincipalWrapper({ appointments }) {
         <TelaPrincipal
             appointments={appointments}
             onGoToFormAgenda={() => navigate('/dashboard/form-agenda')}
+        />
+    );
+}
+
+function CadastrosWrapper() {
+    const navigate = useNavigate();
+
+    return (
+        <Cadastros
+            isAdmin={true}
+            onCadastrarCliente={() => navigate('/dashboard/cadastros/novo')}
+            onCadastrarUsuario={() => navigate('/dashboard/cadastros/novo-usuario')}
+            onVerPerfil={(id) => navigate(`/dashboard/cadastros/${id}`)}
+            onVerAnimais={(animais, usuario) => {
+                if (animais && animais.length > 0) {
+                    navigate('/dashboard/prontuarios');
+                }
+            }}
+        />
+    );
+}
+
+function CadastrarClienteWrapper() {
+    const navigate = useNavigate();
+
+    return (
+        <CadastrarCliente
+            onVoltar={() => navigate('/dashboard/cadastros')}
+            onSalvar={() => navigate('/dashboard/cadastros')}
+            onVerProntuario={() => navigate('/dashboard/prontuarios')}
+        />
+    );
+}
+
+function CadastrarUsuarioWrapper() {
+    const navigate = useNavigate();
+
+    return (
+        <CadastrarUsuario
+            onVoltar={() => navigate('/dashboard/cadastros')}
+            onSalvar={() => navigate('/dashboard/cadastros')}
+        />
+    );
+}
+
+function PerfilUsuarioWrapper() {
+    const { id } = useParams();
+    const navigate = useNavigate();
+
+    return (
+        <PerfilUsuario
+            usuarioId={id}
+            isAdmin={true}
+            onVoltar={() => navigate('/dashboard/cadastros')}
+            onEditar={() => navigate('/dashboard/cadastros')}
+            onVerProntuario={() => navigate('/dashboard/prontuarios')}
         />
     );
 }

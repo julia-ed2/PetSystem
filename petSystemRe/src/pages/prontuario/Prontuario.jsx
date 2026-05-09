@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, FileText, ChevronRight, Filter, Plus, X, Check } from 'lucide-react';
-import ProntuarioCard from '../../components/prontuario/ProntuarioCard';
+import AnimalCard from '../../components/AnimalCard';
 
 
 // teste
@@ -223,10 +223,16 @@ const ViewProntuarios = ({ onOpenRecord }) => {
       <div className="flex-1 flex flex-col gap-4 overflow-y-auto pr-2 custom-scrollbar">
         {filteredRecords.length > 0 ? (
           filteredRecords.map(record => (
-            <ProntuarioCard 
-              key={record.id} 
-              record={record} 
-              onClick={(id) => navigate(`/dashboard/prontuarios/${id}`)} 
+            <AnimalCard
+              key={record.id}
+              animal={{
+                id: record.id,
+                name: record.animalName,
+                type: record.species,
+                breed: record.breed,
+                tutor: record.tutor,
+              }}
+              onClick={() => navigate(`/dashboard/prontuarios/${record.id}`)}
             />
           ))
         ) : (
