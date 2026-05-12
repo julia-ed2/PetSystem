@@ -4,9 +4,9 @@ from models import User, Tutor, Pet
 
 
 # Pre-defined valid values
-ESPECIES_VALIDAS = ['cachorro', 'gato', 'passaro', 'roedor', 'reptil', 'outro']
-TIPOS_AGENDAMENTO = ['consulta', 'exame', 'cirurgia', 'vacinacao', 'banho', 'outro']
-NIVEIS_ACESSO = ['admin', 'operador', 'cliente']
+ESPECIES_VALIDAS = ['cao', 'gato', 'passaro', 'roedor', 'outro']
+TIPOS_AGENDAMENTO = ['consulta', 'retorno', 'emergencia', 'preventivo']
+NIVEIS_ACESSO = ['admin', 'veterinario', 'atendente', 'gerente']
 
 
 def validarEmail(email):

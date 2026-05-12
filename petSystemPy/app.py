@@ -2,12 +2,13 @@ import os
 from flask import Flask
 from flask_cors import CORS
 from flask_migrate import Migrate
+from flask_jwt_extended import JWTManager
 from config import config
-from models import db, User
-from auth import gerarHashSenha
+from models import db
 
 
 migrate = Migrate()
+jwt = JWTManager()
 
 
 def create_app(config_name=None):
@@ -23,6 +24,7 @@ def create_app(config_name=None):
 
     db.init_app(app)
     migrate.init_app(app, db)
+    jwt.init_app(app)
 
     CORS(app, resources={
         r"/api/*": {
@@ -50,6 +52,24 @@ def create_app(config_name=None):
     except ImportError as e:
         print(f'⚠️  Warning: Could not import medical blueprint: {e}')
 
+    try:
+        from api.pets import pets_bp
+        app.register_blueprint(pets_bp, url_prefix='/api')
+    except ImportError as e:
+        print(f'⚠️  Warning: Could not import pets blueprint: {e}')
+
+    try:
+        from api.tutores import tutores_bp
+        app.register_blueprint(tutores_bp, url_prefix='/api')
+    except ImportError as e:
+        print(f'⚠️  Warning: Could not import tutores blueprint: {e}')
+
+    try:
+        from api.agendamentos import agendamentos_bp
+        app.register_blueprint(agendamentos_bp, url_prefix='/api')
+    except ImportError as e:
+        print(f'⚠️  Warning: Could not import agendamentos blueprint: {e}')
+
     @app.route('/api/health', methods=['GET'])
     def health():
         return {
@@ -72,50 +92,7 @@ def create_app(config_name=None):
             'error': 'Erro interno do servidor'
         }, 500
 
-    app.config.setdefault('ADMIN_INITIALIZED', False)
-    app.config.setdefault('DB_INITIALIZED', False)
-
-    @app.before_request
-    def ensure_admin_user():
-        if not app.config.get('DB_INITIALIZED'):
-            try:
-                db.create_all()
-                app.config['DB_INITIALIZED'] = True
-            except Exception:
-                return
-
-        if app.config.get('ADMIN_INITIALIZED'):
-            return
-
-        criar_usuario_admin()
-        app.config['ADMIN_INITIALIZED'] = True
-    
     return app
-
-
-def criar_usuario_admin():
-    """Create default admin user if it does not exist"""
-    try:
-        admin_existente = User.query.filter_by(email='admin@petsystem.com').first()
-
-        if admin_existente:
-            print('✓ Admin user já existe')
-            return
-
-        admin = User(
-            nome='Administrador',
-            email='admin@petsystem.com',
-            senha=gerarHashSenha('admin123'),
-            nivel_acesso='admin',
-            status='ativo'
-        )
-
-        db.session.add(admin)
-        db.session.commit()
-        print('✓ Admin user criado: admin@petsystem.com / admin123')
-    except Exception as e:
-        db.session.rollback()
-        print(f'✗ Erro ao criar admin user: {str(e)}')
 
 
 if __name__ == '__main__':
