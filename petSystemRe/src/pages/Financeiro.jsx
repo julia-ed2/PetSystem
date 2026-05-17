@@ -150,7 +150,7 @@ export default function Financeiro() {
 
   return (
     <div className="flex-1 min-h-screen bg-gray-100">
-      <div className="px-8 py-8 max-w-[1100px] w-full">
+      <div className="px-8 py-8 w-full">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Controle Financeiro</h1>
           <button
@@ -201,7 +201,7 @@ export default function Financeiro() {
           ))}
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-visible">
 
           <div className="flex items-center justify-end gap-3 px-6 py-4">
             <button
@@ -257,7 +257,7 @@ export default function Financeiro() {
         </div>
 
       </div>
-      
+
       {modalGasto && (
         <ModalInserirGasto
           onClose={() => setModalGasto(false)}

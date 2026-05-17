@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import FiltroDropdown from "../../components/cadastros/Filtro";
 import AcoesDropdown from "../../components/cadastros/Acoes";
+import ModalConfirmarExclusao from "../../components/cadastros/ModalConfirmarExclusao";
 
-//  Tipos de acesso 
+//  tipos de acesso 
 export const TIPOS_ACESSO = {
   CLIENTE: "Cliente",
   USUARIO: "Usuário",
@@ -50,31 +51,6 @@ function badgeColor(tipo) {
       return "bg-gray-100 text-gray-600 border border-gray-200";
   }
 }
-
-// Modal de confirmação de exclusão 
-function ModalConfirmarExclusao({ usuario, onConfirmar, onCancelar }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6">
-        <h3 className="text-lg font-bold text-gray-900 mb-2">Confirmar exclusão</h3>
-        <p className="text-sm text-gray-600 mb-6">
-          Tem certeza que deseja excluir <span className="font-semibold text-gray-800">{usuario.nome}</span>? Essa ação não pode ser desfeita.
-        </p>
-        <div className="flex gap-3">
-          <button onClick={onCancelar}
-            className="flex-1 border border-gray-300 text-gray-700 font-semibold rounded-xl py-2.5 hover:bg-gray-50 transition-colors text-sm">
-            Cancelar
-          </button>
-          <button onClick={onConfirmar}
-            className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl py-2.5 transition-colors text-sm">
-            Excluir
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 
 /**
  * Cadastros
@@ -178,7 +154,6 @@ export default function Cadastros({
       <div className="px-8 py-6 max-w-5xl w-full mx-auto">
         <h1 className="text-xl font-bold text-gray-900 mb-5">Usuários Cadastrados</h1>
 
-        {/* Busca + filtro */}
         <div className="flex gap-2 mb-3">
           <div className="flex-1 relative">
             <input
@@ -199,7 +174,6 @@ export default function Cadastros({
           />
         </div>
 
-        {/* Tag do filtro ativo */}
         {filtroTipo !== "Todos" && (
           <div className="flex gap-2 flex-wrap mb-4">
             <span className="bg-purple-50 text-[#8A2BE2] text-[10px] font-bold px-3 py-1 rounded-full flex items-center gap-2">
@@ -213,9 +187,7 @@ export default function Cadastros({
           </div>
         )}
 
-        {/* Tabela */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          {/* Cabeçalho */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-visible">
           <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
             <span className="text-sm font-semibold text-gray-700 flex-1">Nome</span>
             <span className="text-sm font-semibold text-gray-700 flex-1">Animais</span>
@@ -223,7 +195,6 @@ export default function Cadastros({
             <span className="w-8" />
           </div>
 
-          {/* Linhas */}
           {loading ? (
             <div className="flex items-center justify-center py-16">
               <div className="w-7 h-7 border-4 border-purple-600 border-t-transparent rounded-full animate-spin" />
@@ -260,14 +231,12 @@ export default function Cadastros({
                   )}
                 </div>
 
-                {/* Tipo de acesso */}
                 <div className="flex-1">
                   <span className={`inline-block text-xs font-semibold px-2.5 py-1 rounded-full ${badgeColor(u.tipoAcesso)}`}>
                     {u.tipoAcesso}
                   </span>
                 </div>
 
-                {/* Ações */}
                 <AcoesDropdown
                   usuario={u}
                   isAdmin={isAdmin}
@@ -279,7 +248,6 @@ export default function Cadastros({
           )}
         </div>
 
-        {/* Contador */}
         {!loading && (
           <p className="text-xs text-gray-400 mt-3">
             {usuariosFiltrados.length} registro{usuariosFiltrados.length !== 1 ? "s" : ""} encontrado{usuariosFiltrados.length !== 1 ? "s" : ""}
@@ -287,7 +255,6 @@ export default function Cadastros({
         )}
       </div>
 
-      {/* Modal de exclusão */}
       {usuarioParaExcluir && (
         <ModalConfirmarExclusao
           usuario={usuarioParaExcluir}
