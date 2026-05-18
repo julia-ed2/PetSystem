@@ -1,11 +1,12 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import User, db
+from models import User, Tutor, db
 from auth import (
     authenticate_user, 
     hash_password, 
     verify_password,
     require_auth,
+    require_role,
     create_tokens,
     get_current_user
 )
@@ -153,6 +154,7 @@ def register():
         login = dados.get('login', '').strip()
         senha = dados.get('password', '')
         tipo_usuario = dados.get('tipo', 'atendente')
+        tutor_id = dados.get('tutor_id')
         
         # Validate required fields
         if not nome or not login or not senha:
@@ -177,6 +179,15 @@ def register():
                 'error': 'Senha deve ter pelo menos 6 caracteres',
                 'code': 'WEAK_PASSWORD'
             }), 400
+
+        if tutor_id is not None:
+            tutor = Tutor.query.get(tutor_id)
+            if not tutor:
+                return jsonify({
+                    'success': False,
+                    'error': 'Tutor não encontrado para vincular ao usuário',
+                    'code': 'TUTOR_NOT_FOUND'
+                }), 404
         
         # Create new user
         novo_usuario = User(
@@ -184,7 +195,8 @@ def register():
             login=login,
             senha_hash=hash_password(senha),
             tipo_usuario=tipo_usuario,
-            ativo=True
+            ativo=True,
+            id_tutor=tutor_id
         )
         
         db.session.add(novo_usuario)
@@ -202,7 +214,8 @@ def register():
                 'id': novo_usuario.id_usuario,
                 'nome': novo_usuario.nome,
                 'login': novo_usuario.login,
-                'tipo': novo_usuario.tipo_usuario
+                    'tipo': novo_usuario.tipo_usuario,
+                    'tutor_id': novo_usuario.id_tutor
             }
         }), 201
     except Exception as e:
@@ -210,5 +223,78 @@ def register():
         return jsonify({
             'success': False,
             'error': f'Erro ao registrar usuário: {str(e)}',
+            'code': 'INTERNAL_ERROR'
+        }), 500
+
+
+@auth_bp.route('/users', methods=['GET'])
+@require_role('admin', 'atendente')
+def list_users(current_user):
+    """
+    List active system users.
+    Requires role: admin or atendente.
+    """
+    try:
+        usuarios = User.query.filter_by(ativo=True).all()
+
+        return jsonify({
+            'success': True,
+            'data': [
+                {
+                    'id': usuario.id_usuario,
+                    'nome': usuario.nome,
+                    'login': usuario.login,
+                    'tipo': usuario.tipo_usuario,
+                    'ativo': usuario.ativo,
+                    'tutor_id': usuario.id_tutor,
+                }
+                for usuario in usuarios
+            ],
+            'total': len(usuarios),
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Erro ao listar usuários: {str(e)}',
+            'code': 'INTERNAL_ERROR'
+        }), 500
+
+
+@auth_bp.route('/users/<int:user_id>', methods=['DELETE'])
+@require_role('admin')
+def delete_user(user_id, current_user):
+    """
+    Soft delete a system user.
+    Requires role: admin.
+    """
+    try:
+        usuario = User.query.get(user_id)
+
+        if not usuario:
+            return jsonify({
+                'success': False,
+                'error': 'Usuário não encontrado',
+                'code': 'USER_NOT_FOUND'
+            }), 404
+
+        if usuario.id_usuario == current_user.id_usuario:
+            return jsonify({
+                'success': False,
+                'error': 'Não é permitido excluir o próprio usuário logado',
+                'code': 'SELF_DELETE_FORBIDDEN'
+            }), 400
+
+        usuario.ativo = False
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Usuário deletado com sucesso'
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': f'Erro ao deletar usuário: {str(e)}',
             'code': 'INTERNAL_ERROR'
         }), 500

@@ -43,7 +43,12 @@ def list_tutores(current_user):
                 'endereco': t.endereco,
                 'login': t.login,
                 'ativo': t.ativo,
-                'pets_count': len(t.pets) if t.pets else 0
+                'pets_count': len(t.pets) if t.pets else 0,
+                'pets': [{
+                    'id': p.id_pet,
+                    'nome': p.nome,
+                    'especie': p.especie
+                } for p in t.pets] if t.pets else []
             } for t in tutores]
         }), 200
     except Exception as e:
@@ -234,7 +239,7 @@ def update_tutor(tutor_id, current_user):
 
 
 @tutores_bp.route('/tutores/<int:tutor_id>', methods=['DELETE'])
-@require_role('admin')
+@require_role('admin', 'atendente')
 def delete_tutor(tutor_id, current_user):
     """Delete tutor (soft delete - mark as inactive)"""
     try:

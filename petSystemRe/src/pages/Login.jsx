@@ -4,49 +4,38 @@ import { Button } from "./../components/Button";
 import InputForm from "../components/Input";
 import logoVet from "../assets/logoVet.png";
 
-async function loginRequest(email, password) {
-    return fetch("http://localhost:3000/login", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-    });
-}
-
-const Login = ({ onGoToCadastroPage, onGoToTelaPrincipal }) => {
+const Login = ({ onGoToCadastroPage, onGoToTelaPrincipal, onLogin }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
-    const [email, setEmail] = useState("");
+    const [login, setLogin] = useState("");
     const [password, setPassword] = useState("");
 
     async function handleSubmit(e) {
         e.preventDefault();
+        
+        if (!login || !password) {
+            setError("Preencha login e senha");
+            return;
+        }
 
-        /* Comentado para visualizar telas. REMOVER EM PRODUÇÃO
-         try {
-             setLoading(true);
-             setError("");
-        
-             const response = await loginRequest(email, password);
-             const result = await response.json();
-        
-             if (!response.ok) {
-                 setError(result.message || "Erro ao fazer login");
-                 return;
-             }
-        
-             console.log("Login OK:", result);
-             onGoToTelaPrincipal();
-        
-         } catch {
-             setError("Erro de conexão com o servidor");
-         } finally {
-             setLoading(false);
-         }
+        try {
+            setLoading(true);
+            setError("");
 
-        / MODO DESENVOLVIMENTO: Acesso direto */
-        onGoToTelaPrincipal();
+            const result = await onLogin(login, password);
+
+            if (!result.success) {
+                setError(result.error || "Erro ao fazer login");
+                return;
+            }
+
+            onGoToTelaPrincipal();
+        } catch (err) {
+            setError("Erro de conexão com o servidor");
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
     }
 
     return (
@@ -77,12 +66,13 @@ const Login = ({ onGoToCadastroPage, onGoToTelaPrincipal }) => {
                         )}
 
                         <InputForm
-                            id="email"
-                            label="Email"
-                            type="email"
-                            placeholder=""
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
+                            id="login"
+                            label="Login"
+                            type="text"
+                            placeholder="Seu login"
+                            value={login}
+                            onChange={(e) => setLogin(e.target.value)}
+                            disabled={loading}
                         />
 
                         <div className="relative">
@@ -90,14 +80,16 @@ const Login = ({ onGoToCadastroPage, onGoToTelaPrincipal }) => {
                                 id="password"
                                 label="Senha"
                                 type="password"
-                                placeholder=""
+                                placeholder="Sua senha"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
+                                disabled={loading}
                             />
                             <div className="flex justify-end mt-[-8px]">
                                 <button
                                     type="button"
-                                    className="text-[#8A2BE2] text-sm font-bold hover:underline"
+                                    className="text-[#8A2BE2] text-sm font-bold hover:underline disabled:opacity-50"
+                                    disabled={loading}
                                 >
                                     Esqueceu a senha?
                                 </button>
@@ -111,7 +103,7 @@ const Login = ({ onGoToCadastroPage, onGoToTelaPrincipal }) => {
                         <div className="text-center mt-4">
                             <p className="text-gray-600 text-sm">
                                 Sua clínica ainda não usa o PetSystem?{' '}
-                                <button onClick={onGoToCadastroPage} type="button" className="text-[#8A2BE2] font-bold hover:underline">Cadastre-se.</button>
+                                <button onClick={onGoToCadastroPage} type="button" className="text-[#8A2BE2] font-bold hover:underline disabled:opacity-50" disabled={loading}>Cadastre-se.</button>
                             </p>
                         </div>
                     </form>

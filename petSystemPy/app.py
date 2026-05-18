@@ -70,6 +70,12 @@ def create_app(config_name=None):
     except ImportError as e:
         print(f'⚠️  Warning: Could not import agendamentos blueprint: {e}')
 
+    try:
+        from api.usuarios import usuarios_bp
+        app.register_blueprint(usuarios_bp, url_prefix='/api')
+    except ImportError as e:
+        print(f'⚠️  Warning: Could not import usuarios blueprint: {e}')
+
     @app.route('/api/health', methods=['GET'])
     def health():
         return {

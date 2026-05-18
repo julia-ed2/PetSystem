@@ -1,6 +1,11 @@
 import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, Outlet, useLocation, useParams } from 'react-router-dom';
 
+import { AuthProvider } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
+import { authService } from '../services/authService';
+import { usuariosService } from '../services/usuariosService';
+
 import Login from './Login';
 import CadastroPage from './Cadastro';
 import TelaPrincipal from './TelaPrincipal';
@@ -9,7 +14,6 @@ import FormNewAppointment from './agenda/FormAgenda';
 import ViewVaccination from './Vacinacao';
 import PlaceholderPage from '../components/PlaceholderPage';
 import Sidebar from '../components/Menu';
-import Estoque from './Estoque';
 import ViewProntuarios from './prontuario/Prontuario';
 import ProntuarioDetalhe from './prontuario/ProntuarioDetalhe';
 import EditarPet from './prontuario/EditarPet';
@@ -17,7 +21,6 @@ import Cadastros from './cadastros/Cadastros';
 import CadastrarCliente from './cadastros/CadastrarCliente';
 import CadastrarUsuario from './cadastros/CadastroUsuario';
 import PerfilUsuario from './cadastros/PerfilUsuario';
-import Financeiro from './Financeiro';
 
 
 export default function App() {
@@ -41,36 +44,38 @@ export default function App() {
     };
 
     return (
-        <BrowserRouter>
-            <Routes>
-                <Route path="/" element={<LoginWrapper />} />
-                <Route path="/cadastro" element={<CadastroWrapper />} />
-                <Route path="/agenda" element={<Navigate replace to="/dashboard/agenda" />} />
-                <Route path="/vacinacao" element={<Navigate replace to="/dashboard/vacinacao" />} />
-                <Route path="/dashboard" element={<DashboardLayout />}>
-                    <Route index element={<TelaPrincipalWrapper appointments={appointments} />} />
-                    <Route path="agenda" element={<AgendaWrapper appointments={appointments} />} />
-                    <Route
-                        path="form-agenda"
-                        element={
-                            <FormAgendaWrapper
-                                onSubmit={handleAddNewAppointment}
-                            />
-                        }
-                    />
-                    <Route path="vacinacao" element={<VacinacaoWrapper />} />
-                    <Route path="prontuarios" element={<ProntuariosWrapper />} />
-                    <Route path="prontuarios/:id" element={<ProntuarioDetalheWrapper />} />
-                    <Route path="prontuarios/:id/editar" element={<EditarPetWrapper />} />
-                    <Route path="cadastros" element={<CadastrosWrapper />} />
-                    <Route path="cadastros/novo" element={<CadastrarClienteWrapper />} />
-                    <Route path="cadastros/novo-usuario" element={<CadastrarUsuarioWrapper />} />
-                    <Route path="cadastros/:id" element={<PerfilUsuarioWrapper />} />
-                    <Route path="estoque" element={<Estoque />} />
-                    <Route path="financeiro" element={<Financeiro />} />
-                </Route>
-            </Routes>
-        </BrowserRouter>
+        <AuthProvider>
+            <BrowserRouter>
+                <Routes>
+                    <Route path="/" element={<LoginWrapper />} />
+                    <Route path="/cadastro" element={<CadastroWrapper />} />
+                    <Route path="/agenda" element={<Navigate replace to="/dashboard/agenda" />} />
+                    <Route path="/vacinacao" element={<Navigate replace to="/dashboard/vacinacao" />} />
+                    <Route path="/dashboard" element={<DashboardLayout />}>
+                        <Route index element={<TelaPrincipalWrapper appointments={appointments} />} />
+                        <Route path="agenda" element={<AgendaWrapper appointments={appointments} />} />
+                        <Route
+                            path="form-agenda"
+                            element={
+                                <FormAgendaWrapper
+                                    onSubmit={handleAddNewAppointment}
+                                />
+                            }
+                        />
+                        <Route path="vacinacao" element={<VacinacaoWrapper />} />
+                        <Route path="prontuarios" element={<ProntuariosWrapper />} />
+                        <Route path="prontuarios/:id" element={<ProntuarioDetalheWrapper />} />
+                        <Route path="prontuarios/:id/editar" element={<EditarPetWrapper />} />
+                        <Route path="cadastros" element={<CadastrosWrapper />} />
+                        <Route path="cadastros/novo" element={<CadastrarClienteWrapper />} />
+                        <Route path="cadastros/novo-usuario" element={<CadastrarUsuarioWrapper />} />
+                        <Route path="cadastros/:id" element={<PerfilUsuarioWrapper />} />
+                        <Route path="estoque" element={<PlaceholderPage title="Estoque" />} />
+                        <Route path="financeiro" element={<PlaceholderPage title="Financeiro" />} />
+                    </Route>
+                </Routes>
+            </BrowserRouter>
+        </AuthProvider>
     );
 }
 
@@ -124,11 +129,13 @@ function getActivePageFromPath(pathname) {
 
 function LoginWrapper() {
     const navigate = useNavigate();
+    const { login } = useAuth();
 
     return (
         <Login
             onGoToCadastroPage={() => navigate('/cadastro')}
             onGoToTelaPrincipal={() => navigate('/dashboard')}
+            onLogin={login}
         />
     );
 }
@@ -183,10 +190,27 @@ function CadastrarClienteWrapper() {
 function CadastrarUsuarioWrapper() {
     const navigate = useNavigate();
 
+    const mapTipoUsuario = (tipoAcesso) => {
+        if (tipoAcesso === 'administrador') return 'admin';
+        return 'atendente';
+    };
+
+    const salvarUsuario = async (dados) => {
+        return usuariosService.create({
+            nome: dados.nome,
+            login: dados.email,
+            password: dados.senha,
+            tipo: mapTipoUsuario(dados.tipoAcesso),
+        });
+    };
+
     return (
         <CadastrarUsuario
             onVoltar={() => navigate('/dashboard/cadastros')}
-            onSalvar={() => navigate('/dashboard/cadastros')}
+            onSalvar={async (dados) => {
+                await salvarUsuario(dados);
+                navigate('/dashboard/cadastros');
+            }}
         />
     );
 }

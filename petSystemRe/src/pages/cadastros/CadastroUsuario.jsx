@@ -38,22 +38,45 @@ export default function CadastrarUsuario({ onVoltar, onSalvar }) {
     confirmarSenha: "",
     tipoAcesso: "",
   });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   function set(key, value) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
-  function handleSalvar() {
+  async function handleSalvar() {
     if (!form.nome || !form.cpf || !form.celular || !form.email || !form.tipoAcesso) {
-      alert("Preencha todos os campos obrigatórios.");
+      setError("Preencha todos os campos obrigatórios.");
       return;
     }
-    if (form.senha && form.senha !== form.confirmarSenha) {
-      alert("As senhas não coincidem.");
+
+    if (!form.senha || !form.confirmarSenha) {
+      setError("Senha e confirmação são obrigatórias.");
       return;
     }
+
+    if (form.senha.length < 6) {
+      setError("A senha deve ter pelo menos 6 caracteres.");
+      return;
+    }
+
+    if (form.senha !== form.confirmarSenha) {
+      setError("As senhas não coincidem.");
+      return;
+    }
+
     const { confirmarSenha, ...dados } = form;
-    onSalvar?.(dados);
+
+    try {
+      setLoading(true);
+      setError("");
+      await onSalvar?.(dados);
+    } catch (err) {
+      setError(err?.message || "Erro ao cadastrar usuário.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -63,6 +86,7 @@ export default function CadastrarUsuario({ onVoltar, onSalvar }) {
         <button
           onClick={onVoltar}
           className="flex items-center gap-1 text-gray-500 hover:text-purple-700 text-sm mb-6 transition-colors"
+          disabled={loading}
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -74,6 +98,12 @@ export default function CadastrarUsuario({ onVoltar, onSalvar }) {
           <h1 className="text-2xl font-bold text-gray-900">Cadastrar Usuário</h1>
           <p className="text-sm text-gray-400 mt-1">Preencha as informações do colaborador</p>
         </div>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+            {error}
+          </div>
+        )}
 
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-7 space-y-5">
           
@@ -160,13 +190,13 @@ export default function CadastrarUsuario({ onVoltar, onSalvar }) {
                   <button
                     key={tipo.value}
                     onClick={() => set("tipoAcesso", tipo.value)}
-                    className={`w-full text-left border-2 rounded-2xl px-5 py-4 transition-all ${
+                    className={`w-full text-left border-2 rounded-2xl px-5 py-4 transition-all min-h-[88px] ${
                       selecionado
                         ? "border-purple-600 bg-purple-50"
                         : "border-gray-100 bg-gray-50 hover:border-purple-200"
                     }`}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-start gap-3">
                       <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
                         selecionado ? "border-purple-600" : "border-gray-300"
                       }`}>
@@ -174,7 +204,7 @@ export default function CadastrarUsuario({ onVoltar, onSalvar }) {
                           <div className="w-2.5 h-2.5 rounded-full bg-purple-600" />
                         )}
                       </div>
-                      <div>
+                      <div className="pt-0.5">
                         <p className={`text-sm font-semibold ${selecionado ? "text-purple-700" : "text-gray-700"}`}>
                           {tipo.label}
                         </p>
@@ -192,15 +222,17 @@ export default function CadastrarUsuario({ onVoltar, onSalvar }) {
           <div className="bottom-0 left-0 right-0 bg-gray-50 border-t border-gray-100 flex justify-between items-center py-5 px-8">
             <button
               onClick={onVoltar}
-              className="bg-red-500 hover:bg-red-600 text-white font-bold text-sm px-24 py-4 rounded-2xl transition-colors shadow-md cursor-pointer"
+              disabled={loading}
+              className="bg-red-500 hover:bg-red-600 text-white font-bold text-sm px-24 py-4 rounded-2xl transition-colors shadow-md cursor-pointer disabled:opacity-50"
             >
               Cancelar
             </button>
             <button
               onClick={handleSalvar}
-              className="bg-pink-500 hover:bg-pink-600 text-white font-bold text-sm px-24 py-4 rounded-2xl transition-colors shadow-md cursor-pointer"
+              disabled={loading}
+              className="bg-pink-500 hover:bg-pink-600 text-white font-bold text-sm px-24 py-4 rounded-2xl transition-colors shadow-md cursor-pointer disabled:opacity-50"
             >
-              Salvar
+              {loading ? "Salvando..." : "Salvar"}
             </button>
           </div>
         </div>

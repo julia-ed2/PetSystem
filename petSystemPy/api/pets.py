@@ -252,7 +252,7 @@ def update_pet(pet_id, current_user):
 
 
 @pets_bp.route('/pets/<int:pet_id>', methods=['DELETE'])
-@require_role('admin', 'veterinario')
+@require_auth
 def delete_pet(pet_id, current_user):
     """Delete pet (soft delete - mark as inactive)"""
     try:
