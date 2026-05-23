@@ -12,7 +12,8 @@ import TelaPrincipal from './TelaPrincipal';
 import ViewAgenda from './agenda/Agenda';
 import FormNewAppointment from './agenda/FormAgenda';
 import ViewVaccination from './Vacinacao';
-import PlaceholderPage from '../components/PlaceholderPage';
+import Estoque from './Estoque';
+import Financeiro from './Financeiro';
 import Sidebar from '../components/Menu';
 import ViewProntuarios from './prontuario/Prontuario';
 import ProntuarioDetalhe from './prontuario/ProntuarioDetalhe';
@@ -70,8 +71,8 @@ export default function App() {
                         <Route path="cadastros/novo" element={<CadastrarClienteWrapper />} />
                         <Route path="cadastros/novo-usuario" element={<CadastrarUsuarioWrapper />} />
                         <Route path="cadastros/:id" element={<PerfilUsuarioWrapper />} />
-                        <Route path="estoque" element={<PlaceholderPage title="Estoque" />} />
-                        <Route path="financeiro" element={<PlaceholderPage title="Financeiro" />} />
+                        <Route path="estoque" element={<Estoque />} />
+                        <Route path="financeiro" element={<Financeiro />} />
                     </Route>
                 </Routes>
             </BrowserRouter>
