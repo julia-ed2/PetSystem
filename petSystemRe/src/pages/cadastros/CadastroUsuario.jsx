@@ -119,6 +119,7 @@ export default function CadastrarUsuario({ onVoltar, onSalvar }) {
               value={form.cpf}
               onChange={(v) => set("cpf", v)}
               placeholder="000.000.000-00"
+              mask="cpf"
             />
             <Campo
               label="Data de Nascimento (opcional):"
@@ -134,6 +135,7 @@ export default function CadastrarUsuario({ onVoltar, onSalvar }) {
               value={form.celular}
               onChange={(v) => set("celular", v)}
               placeholder="(00) 00000-0000"
+              mask="phone"
             />
             <div>
               <label className="text-sm text-gray-700 mb-1.5 block">Gênero (opcional):</label>

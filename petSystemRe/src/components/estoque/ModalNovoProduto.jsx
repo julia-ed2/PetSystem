@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { fakeApi, CATEGORIAS } from '../../pages/Estoque';
+import Campo from '../cadastros/CampoForm';
 
 function ModalNovoProduto({ onClose, onCadastrar }) {
   const [nome,       setNome]  = useState("");
@@ -67,8 +68,12 @@ function ModalNovoProduto({ onClose, onCadastrar }) {
           </div>
           <div>
             <label className="text-sm text-gray-800 mb-1.5 block">Preço unitário (R$):</label>
-            <input type="number" min="0" step="0.01" value={preco} onChange={e => setPreco(e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300" />
+            <Campo
+              label="Preço unitário (R$):"
+              value={preco}
+              onChange={(v) => setPreco(v)}
+              mask="currency"
+            />
           </div>
         </div>
 

@@ -27,7 +27,6 @@ const ViewVaccination = () => {
     notes: ''
   });
 
-  // Lógica de busca funcional
   const filteredAnimals = useMemo(() => {
     return MOCK_ANIMALS.filter(animal => 
       animal.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -49,7 +48,6 @@ const ViewVaccination = () => {
   const handleRegister = () => {
     if (selectedIds.length === 0) return alert("Selecione pelo menos um animal.");
     
-    // Objeto consolidado para o backend
     const payload = {
       animals: selectedIds,
       vaccineInfo: vaccineData

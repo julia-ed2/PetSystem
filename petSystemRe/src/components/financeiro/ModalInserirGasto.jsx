@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Campo from '../cadastros/CampoForm';
 
 const CATEGORIAS_RECEITA = ["Consulta","Vacina","Cirurgia","Exame","Outro"];
 const CATEGORIAS_GASTO = ["Gasto","Insumo","Equipamento","Funcionário","Outro"];
@@ -76,9 +77,12 @@ function ModalInserirGasto({ onClose, onInserir }) {
 
         <div className="grid grid-cols-2 gap-4 mb-8">
           <div>
-            <label className="text-sm text-gray-800 mb-1.5 block">Valor (R$):</label>
-            <input type="number" min="0" step="0.01" value={valor} onChange={e => setValor(e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300" />
+            <Campo
+              label="Valor (R$):"
+              value={valor}
+              onChange={(v) => setValor(v)}
+              mask="currency"
+            />
           </div>
           <div>
             <label className="text-sm text-gray-800 mb-1.5 block">Status:</label>

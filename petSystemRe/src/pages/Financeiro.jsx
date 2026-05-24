@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import CategoriaDropdown from "../components/financeiro/CategoriaDropdown";
 import ModalInserirGasto from "../components/financeiro/ModalInserirGasto";
+import { consolidarLancamentosFinanceiros } from "../utils/financialDataTransformer";
 
 //teste
 // VAI RECEBER DADOS DO ESTOQUE E PRODUTOS E DOS AGENDAMENTOS
@@ -48,7 +49,7 @@ function StatusBadge({ status, tipo }) {
   return <span className="text-sm font-bold text-gray-400">Cancelado</span>;
 }
 
-export default function Financeiro() {
+export default function Financeiro({ agendamentos = [], prontuarios = [], vendas = [], saidasEstoque = [] }) {
   const mesAtual = new Date().getMonth() + 1;
   const mesNomeAtual = MESES[mesAtual - 1];
 
@@ -58,14 +59,37 @@ export default function Financeiro() {
   const [catFiltro, setCatFiltro]     = useState("Todas as categorias");
   const [modalGasto, setModalGasto]   = useState(false);
 
+  /**
+   * Carrega dados: combina dados mock com dados de agendamentos
+   * TODO: Quando a API estiver pronta, remover fakeApi e usar dados da API diretamente
+   */
   async function carregar() {
     setLoading(true);
-    const data = await fakeApi.getLancamentos();
-    setLancamentos(data);
+    
+    // Dados mock do fakeApi (MANTER ATÉ A API ESTAR PRONTA)
+    const dataMock = await fakeApi.getLancamentos();
+    
+    // Transforma agendamentos e outros dados em lançamentos financeiros
+    const lancamentosAutomaticos = consolidarLancamentosFinanceiros({
+      agendamentos,
+      prontuarios,
+      vendas,
+      saidasEstoque,
+      // TODO: Descomente quando a API estiver integrada:
+      // agendamentosAPI: dados.agendamentos_realizados,
+      // prontuariosAPI: dados.prontuarios_validados,
+    });
+
+    // Consolida: mantém dados mock + automaticamente gerados
+    // (Mock primeiro para manter os dados de exemplo)
+    setLancamentos([...dataMock, ...lancamentosAutomaticos]);
     setLoading(false);
   }
 
-  useEffect(() => { carregar(); }, []);
+  // Recarrega quando agendamentos mudam (quando novos agendamentos são criados)
+  useEffect(() => { 
+    carregar(); 
+  }, [agendamentos, prontuarios, vendas, saidasEstoque]);
 
   const mesNum = MESES_NUM[mesSel];
 
@@ -100,6 +124,12 @@ export default function Financeiro() {
     const { mes } = parseData(salvo.data);
     setMesSel(MESES[mes - 1]);
     setModalGasto(false);
+  }
+
+  function handleAlterarStatus(id) {
+    setLancamentos(prev => prev.map(l => 
+      l.id === id && l.status === "Pendente" ? { ...l, status: "Pago" } : l
+    ));
   }
 
   //imprime relatório
@@ -160,7 +190,7 @@ export default function Financeiro() {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
-            Inserir gasto
+            Lançamento
           </button>
         </div>
 
@@ -222,8 +252,8 @@ export default function Financeiro() {
             <span className="text-sm font-semibold text-gray-700 w-[15%]">Data</span>
             <span className="text-sm font-semibold text-gray-700 w-[30%]">Descrição</span>
             <span className="text-sm font-semibold text-gray-700 w-[15%]">Categoria</span>
-            <span className="text-sm font-semibold text-gray-700 w-[15%] text-right">Valor</span>
-            <span className="text-sm font-semibold text-gray-700 w-[10%] text-right">Status</span>
+            <span className="text-sm font-semibold text-gray-700 w-[12%] text-right">Valor</span>
+            <span className="text-sm font-semibold text-gray-700 w-[13%] text-right">Status</span>
           </div>
 
           {loading ? (
@@ -245,11 +275,20 @@ export default function Financeiro() {
                 <span className="text-sm text-gray-700 w-[15%]">{l.data}</span>
                 <span className="text-sm text-gray-800 w-[30%]">{l.descricao}</span>
                 <span className="text-sm text-gray-600 w-[15%]">{l.categoria}</span>
-                <span className={`text-sm font-medium w-[15%] text-right ${l.tipo === "gasto" ? "text-gray-800" : "text-gray-800"}`}>
+                <span className={`text-sm font-medium w-[12%] text-right ${l.tipo === "gasto" ? "text-gray-800" : "text-gray-800"}`}>
                   {l.tipo === "gasto" ? `- ${fmt(l.valor)}` : fmt(l.valor)}
                 </span>
-                <div className="w-[10%] text-right">
+                <div className="w-[13%] text-right flex items-center justify-end gap-2">
                   <StatusBadge status={l.status} tipo={l.tipo} />
+                  {l.status === "Pendente" && (
+                    <button
+                      onClick={() => handleAlterarStatus(l.id)}
+                      className="px-2 py-1 text-xs bg-green-100 text-green-700 hover:bg-green-200 rounded-lg font-semibold transition-colors"
+                      title="Marcar como pago"
+                    >
+                      ✓
+                    </button>
+                  )}
                 </div>
               </div>
             ))

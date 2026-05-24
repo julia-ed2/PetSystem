@@ -1,19 +1,21 @@
 import { Heart, Check } from 'lucide-react';
 
-const AnimalCard = ({ animal, isSelected = false, onToggle, onClick, onVerProntuario, onRemove }) => {
+const AnimalCard = ({ animal, isSelected = false, onToggle, onClick, onVerProntuario, onRemove, showChevron = false, hoverable = false }) => {
   const handleCardClick = () => {
     if (onToggle) return onToggle(animal.id);
     if (onClick) return onClick(animal);
   };
 
   const canClick = Boolean(onToggle || onClick);
+  const shouldShowChevron = showChevron && !onVerProntuario && !onRemove;
+  const rootInteractiveClass = (canClick || hoverable) ? 'cursor-pointer group' : '';
 
   return (
     <div
       onClick={canClick ? handleCardClick : undefined}
       className={`relative p-5 mb-3 rounded-2xl border-2 transition-all flex items-center justify-between
         ${isSelected ? 'bg-purple-50 border-[#8A2BE2] shadow-sm' : 'bg-gray-50 border-transparent hover:border-gray-200'}
-        ${canClick ? 'cursor-pointer' : ''}`}
+        ${rootInteractiveClass} ${hoverable ? 'hover:bg-gray-50 hover:shadow-md' : ''}`}
     >
       <div className="flex flex-col gap-1">
         <div className="flex items-center gap-2">
@@ -55,10 +57,16 @@ const AnimalCard = ({ animal, isSelected = false, onToggle, onClick, onVerProntu
           )}
         </div>
       ) : (
-        <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-colors
-          ${isSelected ? 'bg-[#8A2BE2] border-[#8A2BE2]' : 'bg-white border-gray-200'}`}>
-          {isSelected && <Check size={16} className="text-white" strokeWidth={3} />}
-        </div>
+        shouldShowChevron ? (
+          <div className={`text-gray-400 text-xl font-bold ${hoverable ? 'group-hover:text-[#8A2BE2] transition-colors' : ''}`}>
+            {'>'}
+          </div>
+        ) : (
+          <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-colors
+            ${isSelected ? 'bg-[#8A2BE2] border-[#8A2BE2]' : 'bg-white border-gray-200'}`}>
+            {isSelected && <Check size={16} className="text-white" strokeWidth={3} />}
+          </div>
+        )
       )}
     </div>
   );

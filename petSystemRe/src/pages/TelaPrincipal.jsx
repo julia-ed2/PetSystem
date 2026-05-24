@@ -1,8 +1,11 @@
 import React from 'react';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, QuickAction } from '../components/Button';
 import AppointmentCard from '../components/AppointmentCard';
+import ModalRegistrarSaida from '../components/estoque/ModalRegistrarSaida';
+import ModalInserirGasto from '../components/financeiro/ModalInserirGasto';
+import { fakeApi } from './Estoque';
 import { Syringe, UserPlus, ArrowUpRight, Plus, Calendar as CalendarIcon } from 'lucide-react';
 
 
@@ -10,8 +13,30 @@ export default function TelaPrincipal({ onGoToLogin, onGoToFormAgenda, appointme
     const navigate = useNavigate();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingPostit, setEditingPostit] = useState(null);
+    const [modalSaida, setModalSaida] = useState(false);
+    const [modalGasto, setModalGasto] = useState(false);
+    const [produtos, setProdutos] = useState([]);
+    const [clientes, setClientes] = useState([]);
+    const [loadingSaida, setLoadingSaida] = useState(true);
 
-    
+    useEffect(() => {
+        const carregarDadosSaida = async () => {
+            setLoadingSaida(true);
+            const [prods, cls] = await Promise.all([fakeApi.getProdutos(), fakeApi.getClientes()]);
+            setProdutos(prods);
+            setClientes(cls);
+            setLoadingSaida(false);
+        };
+
+        carregarDadosSaida();
+    }, []);
+
+    const handleSaidaRegistrada = async () => {
+        const prods = await fakeApi.getProdutos();
+        setProdutos(prods);
+        setModalSaida(false);
+    };
+
     const [postits, setPostits] = useState([
     //VAZIO POR ENQUANTO    
     ]);
@@ -69,6 +94,11 @@ export default function TelaPrincipal({ onGoToLogin, onGoToFormAgenda, appointme
         setIsModalOpen(false);
     };
 
+    const handleInserirGasto = (novoGasto) => {
+        console.log('Gasto inserido:', novoGasto);
+        setModalGasto(false);
+    };
+
     return (
         <div className="flex-1 flex overflow-hidden">
             <div className="flex flex-1">
@@ -77,9 +107,9 @@ export default function TelaPrincipal({ onGoToLogin, onGoToFormAgenda, appointme
                                 <h3 className="text-black font-bold text-xl mb-6">Atalhos</h3>
                                 <div className="flex flex-wrap gap-4">
                                     <QuickAction label="Registrar vacina" color="bg-[#D84382]" icon={Syringe} onClick={() => navigate('/dashboard/vacinacao')} />
-                                    <QuickAction label="Cadastrar cliente" color="bg-[#D84382]" icon={UserPlus} onClick={() => navigate('/dashboard/cadastros')} />
-                                    <QuickAction label="Registrar saída" color="bg-[#D84382]" icon={ArrowUpRight} />
-                                    <QuickAction label="Lançar serviço" color="bg-[#D84382]" icon={Plus} />
+                                    <QuickAction label="Cadastrar cliente" color="bg-[#D84382]" icon={UserPlus} onClick={() => navigate('/dashboard/cadastros/novo')} />
+                                    <QuickAction label="Registrar saída" color="bg-[#D84382]" icon={ArrowUpRight} onClick={() => setModalSaida(true)} />
+                                    <QuickAction label="Lançamento" color="bg-[#D84382]" icon={Plus} onClick={() => setModalGasto(true)} />
                                 </div>
                             </section>
 
@@ -173,6 +203,22 @@ export default function TelaPrincipal({ onGoToLogin, onGoToFormAgenda, appointme
                         </div>
                     </div>
                 </div>
+            )}
+
+            {modalSaida && (
+                <ModalRegistrarSaida
+                    produtos={produtos}
+                    clientes={clientes}
+                    onClose={() => setModalSaida(false)}
+                    onSaida={handleSaidaRegistrada}
+                />
+            )}
+
+            {modalGasto && (
+                <ModalInserirGasto
+                    onClose={() => setModalGasto(false)}
+                    onInserir={handleInserirGasto}
+                />
             )}
         </div>
     );

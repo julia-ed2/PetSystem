@@ -31,6 +31,8 @@ export default function App() {
         { id: 3, type: 'CIRURGIA', time: '13:00', patient: 'Pitoco', procedure: 'Castração', doctor: 'Dr. exemplo 3', date: '2026-04-03' },
     ]);
 
+    const [saidasEstoque, setSaidasEstoque] = useState([]);
+
     const handleAddNewAppointment = (appointmentData) => {
         const newAppointment = {
             id: Date.now(),
@@ -42,6 +44,22 @@ export default function App() {
         };
 
         setAppointments((prev) => [...prev, newAppointment]);
+    };
+
+    const handleRegistrarSaidaEstoque = (itens) => {
+        const novasSaidas = itens.map(item => ({
+            id: Date.now().toString(),
+            data: new Date().toISOString().split('T')[0],
+            produtoId: item.produtoId,
+            produtoNome: item.produtoNome,
+            quantidade: item.quantidade,
+            precoUnitario: item.precoUnitario,
+            clienteId: item.clienteId,
+            clienteNome: item.clienteNome,
+            total: item.quantidade * item.precoUnitario,
+            timestamp: Date.now(),
+        }));
+        setSaidasEstoque((prev) => [...prev, ...novasSaidas]);
     };
 
     return (
@@ -71,8 +89,8 @@ export default function App() {
                         <Route path="cadastros/novo" element={<CadastrarClienteWrapper />} />
                         <Route path="cadastros/novo-usuario" element={<CadastrarUsuarioWrapper />} />
                         <Route path="cadastros/:id" element={<PerfilUsuarioWrapper />} />
-                        <Route path="estoque" element={<Estoque />} />
-                        <Route path="financeiro" element={<Financeiro />} />
+                        <Route path="estoque" element={<EstoqueWrapper onRegistrarSaida={handleRegistrarSaidaEstoque} />} />
+                        <Route path="financeiro" element={<FinanceiroWrapper appointments={appointments} saidasEstoque={saidasEstoque} />} />
                     </Route>
                 </Routes>
             </BrowserRouter>
@@ -281,4 +299,19 @@ function ProntuarioDetalheWrapper() {
 
 function EditarPetWrapper() {
     return <EditarPet />;
+}
+
+function EstoqueWrapper({ onRegistrarSaida }) {
+    return <Estoque onRegistrarSaida={onRegistrarSaida} />;
+}
+
+function FinanceiroWrapper({ appointments = [], saidasEstoque = [] }) {
+    return (
+        <Financeiro
+            agendamentos={appointments}
+            prontuarios={[]}
+            vendas={[]}
+            saidasEstoque={saidasEstoque}
+        />
+    );
 }

@@ -42,7 +42,7 @@ export const fakeApi = {
     }
 };
 
-export default function Estoque() {
+export default function Estoque({ onRegistrarSaida }) {
     const [produtos, setProdutos] = useState([]);
     const [clientes, setClientes] = useState([]);
     const [loading, setLoading] = useState(true);

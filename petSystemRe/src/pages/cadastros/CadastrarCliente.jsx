@@ -147,6 +147,7 @@ export default function CadastrarCliente({ onVoltar, onSalvar, onVerProntuario }
               label="CPF (obrigatório):"
               value={tutor.cpf}
               onChange={(v) => setT("cpf", v)}
+              mask="cpf"
               placeholder="000.000.000-00"
             />
             <Campo
@@ -162,6 +163,7 @@ export default function CadastrarCliente({ onVoltar, onSalvar, onVerProntuario }
               label="Celular (obrigatório):"
               value={tutor.celular}
               onChange={(v) => setT("celular", v)}
+              mask="phone"
               placeholder="(00) 00000-0000"
             />
             <div>

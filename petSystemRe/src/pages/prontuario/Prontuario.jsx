@@ -100,9 +100,6 @@ const ViewProntuarios = ({ onOpenRecord }) => {
           <h2 className="text-3xl font-black text-gray-800 tracking-tight">Prontuários Médicos</h2>
           <p className="text-gray-400 text-sm mt-1 font-medium">Consulte e gira o histórico de saúde de todos os pacientes</p>
         </div>
-        <button className="bg-[#D81B60] text-white px-6 py-3 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-[#b0164e] transition-all shadow-lg shadow-pink-100 self-start md:self-auto">
-          <Plus size={20} /> Novo Prontuário
-        </button>
       </header>
 
       <div className="flex flex-col md:flex-row gap-4 items-center">
@@ -232,7 +229,9 @@ const ViewProntuarios = ({ onOpenRecord }) => {
                 breed: record.breed,
                 tutor: record.tutor,
               }}
-              onClick={() => navigate(`/dashboard/prontuarios/${record.id}`)}
+                onClick={() => navigate(`/dashboard/prontuarios/${record.id}`)}
+                showChevron
+                hoverable
             />
           ))
         ) : (
