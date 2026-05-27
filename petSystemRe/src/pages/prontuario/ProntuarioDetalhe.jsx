@@ -2,73 +2,9 @@ import { useEffect, useState } from "react";
 import { useNavigate } from 'react-router-dom';
 import HistoricoCard from "../../components/prontuario/HistoricoCard";
 import NovoRegistro from "../../components/prontuario/NovoRegistro";
+import { petsService } from "../../services/petsService";
+import { tutoresService } from "../../services/tutoresService";
 
-// TESTE 
-const mockProntuario = {
-    pet: {
-        id: "1",
-        nome: "Theo",
-        foto: null,
-        especie: "Cachorro",
-        raca: "Shih Tzu",
-        sexo: "Macho",
-        idade: "5 anos",
-        observacoes: "Castrado",
-    },
-    tutor: {
-        nome: "Julia Eduarda Fernandes Silva",
-        genero: "Feminino",
-        dataNascimento: "01/12/2006",
-        cpf: "111.111.111-11",
-        celular: "(34) 99999-9999",
-        email: "juliaefs@unipam.edu.br",
-        endereco: "Rua Major Gote, número 1. Bairro Caiçaras - Patos de Minas, Minas Gerais.",
-        complemento: "Em frente ao UNIPAM",
-    },
-    historico: [
-        {
-            id: "h1",
-            tipo: "Vacinação",
-            data: "02/04/2026",
-            hora: "10:15",
-            veterinario: "Dr. Exemplo 1",
-            descricao: "Vacina V10, Lote #154V10",
-            proximoReforcao: "02/04/2027",
-            observacoes: "",
-            arquivo: null,
-        },
-        {
-            id: "h2",
-            tipo: "Cirurgia",
-            data: "08/02/2026",
-            hora: "14:30",
-            veterinario: "Dr. Exemplo 2",
-            descricao: "Castração",
-            observacoes: "Procedimento ocorreu sem nenhuma complicação",
-            arquivo: null,
-        },
-        {
-            id: "h3",
-            tipo: "Consulta",
-            data: "06/02/2026",
-            hora: "08:00",
-            veterinario: "Dr. Exemplo 3",
-            descricao: "Consulta de rotina",
-            observacoes: "",
-            arquivo: null,
-        },
-        {
-            id: "h4",
-            tipo: "Exame",
-            data: "25/01/2026",
-            hora: "16:45",
-            veterinario: "Dr. Exemplo 3",
-            descricao: "Hemograma completo",
-            observacoes: "",
-            arquivo: "laudo_exame.pdf",
-        },
-    ],
-};
 
 const TIPO_COLOR = {
     Vacinação: "text-purple-600",
@@ -103,14 +39,90 @@ const TIPO_MAP = {
 // isAdm esta true para testes  
 export default function ProntuarioDetalhe({ prontuarioId, isAdmin = true, onVoltar }) {
     const navigate = useNavigate();
-    const [dados, setDados] = useState(mockProntuario); // -TROCAR POR FETCH
+    const [dados, setDados] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
     const [filtroAtivo, setFiltroAtivo] = useState("Todos");
     const [modalNovoRegistro, setModalNovoRegistro] = useState(false);
 
-    useEffect(() => {
+    const mapHistorico = (records) => {
+        return records.map((record) => {
+            const data = record.data ? new Date(record.data) : (record.date ? new Date(record.date) : null);
+            return {
+                id: `h-${record.id}`,
+                tipo: record.tipo || "Consulta",
+                data: data ? data.toLocaleDateString('pt-BR') : "",
+                hora: data ? data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : (record.hora || ""),
+                veterinario: record.veterinario || record.veterinarian || "Veterinário",
+                descricao: record.descricao || record.treatment || record.diagnosis || "",
+                observacoes: record.observacoes || record.notes || "",
+                proximoReforcao: record.proximoReforco || record.next_dose_date || null,
+                arquivo: null,
+            };
+        });
+    };
+
+    const carregarDados = async () => {
         if (!prontuarioId) return;
-        // buscar dados reais do prontuário quando o backend estiver pronto.
+        try {
+            setLoading(true);
+            setError('');
+
+            const resPet = await petsService.getById(parseInt(prontuarioId));
+            const pet = resPet.data;
+
+            const resTutor = pet.tutor_id
+                ? await tutoresService.getById(pet.tutor_id)
+                : { data: null };
+
+            const resRecords = await petsService.getRecords(parseInt(prontuarioId));
+            const historico = mapHistorico(resRecords.data || []);
+
+            const perfil = {
+                pet: {
+                    id: pet.id,
+                    nome: pet.nome,
+                    foto: null,
+                    especie: pet.especie,
+                    raca: pet.raca || "",
+                    sexo: pet.sexo || "",
+                    idade: pet.idade ? `${pet.idade} anos` : "",
+                    observacoes: pet.observacoes || "",
+                },
+                tutor: resTutor.data
+                    ? {
+                        nome: resTutor.data.nome,
+                        genero: "",
+                        dataNascimento: "",
+                        cpf: resTutor.data.cpf,
+                        celular: resTutor.data.telefone,
+                        email: resTutor.data.login,
+                        endereco: resTutor.data.endereco,
+                        complemento: "",
+                    }
+                    : {
+                        nome: "Tutor",
+                        genero: "",
+                        dataNascimento: "",
+                        cpf: "",
+                        celular: "",
+                        email: "",
+                        endereco: "",
+                        complemento: "",
+                    },
+                historico,
+            };
+
+            setDados(perfil);
+        } catch (err) {
+            setError(err.message || 'Erro ao carregar prontuario');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        carregarDados();
     }, [prontuarioId]);
 
     // BACKEND PRONTO (tirar do comentario):
@@ -129,7 +141,7 @@ export default function ProntuarioDetalhe({ prontuarioId, isAdmin = true, onVolt
       */
 
     // Filtro 
-    const historicFiltrado = dados.historico.filter((item) => {
+    const historicFiltrado = (dados?.historico || []).filter((item) => {
         const tipo = TIPO_MAP[filtroAtivo];
         return tipo === null || item.tipo === tipo;
     });
@@ -142,33 +154,21 @@ export default function ProntuarioDetalhe({ prontuarioId, isAdmin = true, onVolt
         setModalNovoRegistro(true);
     }
 
-    function handleSalvarRegistro(novoItem) {
-        // enviar para a API: POST /api/prontuarios/:id/historico
-        const id = `h${Date.now()}`;
-        const [dataPart, horaPart] = (novoItem.dataHora || "").split("T");
-        const dataFormatada = dataPart
-            ? dataPart.split("-").reverse().join("/")
-            : "";
-        const horaFormatada = horaPart ? horaPart.slice(0, 5) : "";
-
-        setDados((prev) => ({
-            ...prev,
-            historico: [
-                {
-                    id,
-                    tipo: novoItem.tipo,
-                    data: dataFormatada,
-                    hora: horaFormatada,
-                    veterinario: novoItem.veterinario,
-                    descricao: novoItem.descricao,
-                    observacoes: novoItem.observacoes || "",
-                    arquivo: null,
-                    ...(novoItem.proximoReforcao && { proximoReforcao: novoItem.proximoReforcao }),
-                },
-                ...prev.historico,
-            ],
-        }));
-        setModalNovoRegistro(false);
+    async function handleSalvarRegistro(novoItem) {
+        try {
+            setLoading(true);
+            await petsService.createRecord(parseInt(prontuarioId), {
+                diagnosis: novoItem.tipo,
+                treatment: novoItem.descricao,
+                notes: novoItem.observacoes || "",
+            });
+            setModalNovoRegistro(false);
+            await carregarDados();
+        } catch (err) {
+            setError(err.message || 'Erro ao salvar registro');
+        } finally {
+            setLoading(false);
+        }
     }
 
     function handleImprimir() {
@@ -179,6 +179,16 @@ export default function ProntuarioDetalhe({ prontuarioId, isAdmin = true, onVolt
         return (
             <div className="flex-1 flex items-center justify-center h-screen">
                 <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin" />
+            </div>
+        );
+    }
+
+    if (error || !dados) {
+        return (
+            <div className="flex-1 flex items-center justify-center h-screen">
+                <div className="p-4 rounded-2xl border border-red-200 bg-red-50 text-red-700 text-sm">
+                    {error || 'Erro ao carregar prontuario'}
+                </div>
             </div>
         );
     }

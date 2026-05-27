@@ -13,6 +13,21 @@ from auth import (
 
 auth_bp = Blueprint('auth', __name__)
 
+VALID_USER_TYPES = {'admin', 'veterinario', 'atendente', 'gerente'}
+USER_TYPE_ALIASES = {
+    'administrador': 'admin',
+    'usuario': 'atendente',
+    'user': 'atendente',
+}
+
+
+def normalize_user_type(tipo_usuario):
+    tipo_normalizado = (tipo_usuario or '').strip().lower()
+    tipo_mapeado = USER_TYPE_ALIASES.get(tipo_normalizado, tipo_normalizado)
+    if tipo_mapeado in VALID_USER_TYPES:
+        return tipo_mapeado
+    return None
+
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
@@ -151,9 +166,9 @@ def register():
             }), 400
         
         nome = dados.get('nome', '').strip()
-        login = dados.get('login', '').strip()
+        login = dados.get('login', '').strip().lower()
         senha = dados.get('password', '')
-        tipo_usuario = dados.get('tipo', 'atendente')
+        tipo_usuario = normalize_user_type(dados.get('tipo', 'atendente'))
         tutor_id = dados.get('tutor_id')
         
         # Validate required fields
@@ -178,6 +193,13 @@ def register():
                 'success': False,
                 'error': 'Senha deve ter pelo menos 6 caracteres',
                 'code': 'WEAK_PASSWORD'
+            }), 400
+
+        if not tipo_usuario:
+            return jsonify({
+                'success': False,
+                'error': 'Tipo de usuário inválido',
+                'code': 'INVALID_USER_TYPE'
             }), 400
 
         if tutor_id is not None:

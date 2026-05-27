@@ -7,6 +7,11 @@ from models import User, Tutor, db
 usuarios_bp = Blueprint('usuarios', __name__)
 
 VALID_USER_TYPES = {'admin', 'veterinario', 'atendente', 'gerente'}
+USER_TYPE_ALIASES = {
+    'administrador': 'admin',
+    'usuario': 'atendente',
+    'user': 'atendente',
+}
 
 
 def _serialize_user(usuario: User):
@@ -22,6 +27,11 @@ def _serialize_user(usuario: User):
 
 def _validate_tipo(tipo_usuario):
     return tipo_usuario in VALID_USER_TYPES
+
+
+def _normalize_tipo(tipo_usuario):
+    tipo_normalizado = (tipo_usuario or '').strip().lower()
+    return USER_TYPE_ALIASES.get(tipo_normalizado, tipo_normalizado)
 
 
 @usuarios_bp.route('/usuarios', methods=['GET'])
@@ -83,9 +93,9 @@ def create_usuario(current_user):
         dados = request.get_json() or {}
 
         nome = (dados.get('nome') or '').strip()
-        login = (dados.get('login') or '').strip()
+        login = (dados.get('login') or '').strip().lower()
         senha = dados.get('password') or ''
-        tipo_usuario = dados.get('tipo', 'atendente')
+        tipo_usuario = _normalize_tipo(dados.get('tipo', 'atendente'))
         tutor_id = dados.get('tutor_id')
 
         if not nome or not login or not senha:
@@ -177,7 +187,7 @@ def update_usuario(user_id, current_user):
             usuario.nome = nome
 
         if 'login' in dados:
-            login = (dados.get('login') or '').strip()
+            login = (dados.get('login') or '').strip().lower()
             if not login:
                 return jsonify({
                     'success': False,
@@ -195,7 +205,7 @@ def update_usuario(user_id, current_user):
             usuario.login = login
 
         if 'tipo' in dados:
-            tipo_usuario = dados.get('tipo')
+            tipo_usuario = _normalize_tipo(dados.get('tipo'))
             if not _validate_tipo(tipo_usuario):
                 return jsonify({
                     'success': False,

@@ -51,7 +51,7 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  const register = useCallback(async (nome, login, password, tipo = 'usuario') => {
+  const register = useCallback(async (nome, login, password, tipo = 'atendente') => {
     try {
       setLoading(true);
       const res = await authService.register({

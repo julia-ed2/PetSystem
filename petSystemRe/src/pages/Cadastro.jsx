@@ -3,7 +3,7 @@ import Button from '../components/Button';
 import InputForm from '../components/Input';
 import logoVet from "../assets/logoVet.png";
 
-const CadastroPage = ({ onGoToLogin, onRegister }) => {
+const CadastroPage = ({ onGoToLogin, onGoToTelaPrincipal, onRegister }) => {
     const [formData, setFormData] = useState({
         nome: '',
         login: '',
@@ -43,7 +43,7 @@ const CadastroPage = ({ onGoToLogin, onRegister }) => {
                 formData.nome,
                 formData.login,
                 formData.password,
-                'usuario'
+                'admin'
             );
 
             if (!result.success) {
@@ -51,6 +51,10 @@ const CadastroPage = ({ onGoToLogin, onRegister }) => {
                 return;
             }
 
+            if (onGoToTelaPrincipal) {
+                onGoToTelaPrincipal();
+                return;
+            }
             onGoToLogin();
         } catch (err) {
             setError("Erro de conexão com o servidor");

@@ -20,6 +20,7 @@ done
 
 if [[ "$DOCKER_ONLY" -eq 1 ]]; then
 	echo "[INFO] Modo Docker-only: subindo todos os serviços via Docker Compose..."
+	docker compose -f "$ROOT_DIR/docker-compose.yml" build --no-cache backend
 	docker compose -f "$ROOT_DIR/docker-compose.yml" up --build
 	exit $?
 fi
@@ -35,6 +36,24 @@ require_command() {
 }
 
 require_command docker "Instale o Docker antes de executar este projeto."
+
+echo "[INFO] Verificando disponibilidade do Docker..."
+docker_ready=0
+for attempt in $(seq 1 30); do
+	if docker info >/dev/null 2>&1; then
+		docker_ready=1
+		break
+	fi
+	echo "[INFO] Docker ainda nao esta pronto (tentativa $attempt/30)"
+	sleep 2
+done
+
+if [[ "$docker_ready" -ne 1 ]]; then
+	echo "[ERROR] O daemon do Docker nao esta ativo ou nao ficou acessivel a tempo."
+	echo "[INFO] Abra o Docker Desktop, espere ele ficar pronto e rode novamente."
+	exit 1
+fi
+
 # python/npm são necessários apenas no modo local (padrão). No modo --docker o compose cuida de tudo.
 require_command python3 "Instale o Python 3 antes de executar este projeto." 
 require_command npm "Instale o Node.js/npm antes de executar este projeto."
@@ -54,13 +73,35 @@ fi
 
 source "$ROOT_DIR/.venv/bin/activate"
 
-if [[ ! -f "$ROOT_DIR/.venv/.pet_system_backend_installed" ]]; then
+ensure_backend_dependencies() {
+	if "$ROOT_DIR/.venv/bin/python" -c "import flask_jwt_extended" >/dev/null 2>&1; then
+		return 0
+	fi
+
 	echo "[INFO] Instalando dependencias do backend..."
+	"$ROOT_DIR/.venv/bin/pip" install "Flask-JWT-Extended==4.4.4" || {
+		echo "[ERROR] Falha ao instalar Flask-JWT-Extended"
+		exit 1
+	}
 	"$ROOT_DIR/.venv/bin/pip" install -r "$ROOT_DIR/petSystemPy/requirements.txt" || {
 		echo "[ERROR] Falha ao instalar dependencias do backend"
 		exit 1
 	}
+
+	if ! "$ROOT_DIR/.venv/bin/python" -c "import flask_jwt_extended" >/dev/null 2>&1; then
+		echo "[ERROR] Dependencia flask_jwt_extended continua ausente apos a instalacao"
+		exit 1
+	fi
+
 	touch "$ROOT_DIR/.venv/.pet_system_backend_installed"
+}
+
+if [[ ! -f "$ROOT_DIR/.venv/.pet_system_backend_installed" ]]; then
+	ensure_backend_dependencies
+else
+	if ! "$ROOT_DIR/.venv/bin/python" -c "import flask_jwt_extended" >/dev/null 2>&1; then
+		ensure_backend_dependencies
+	fi
 fi
 
 if [[ ! -d "$ROOT_DIR/petSystemRe/node_modules" ]]; then
@@ -80,7 +121,19 @@ free_port() {
 
 	if [[ -n "$pids" ]]; then
 		echo "[INFO] Liberando porta $port..."
-		kill $pids 2>/dev/null || true
+		for pid in $pids; do
+			local process_name
+			process_name=$(ps -p "$pid" -o comm= 2>/dev/null || true)
+
+			case "$process_name" in
+				*Docker*|*docker*|*com.docker*|*vpnkit*|*hyperkit*|*qemu*|*lima*|*colima*)
+					echo "[INFO] Ignorando processo do Docker/VM: PID $pid ($process_name)"
+					continue
+					;;
+			esac
+
+			kill "$pid" 2>/dev/null || true
+		done
 		sleep 1
 	fi
 }

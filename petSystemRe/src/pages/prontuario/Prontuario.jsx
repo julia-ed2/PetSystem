@@ -1,95 +1,82 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, FileText, ChevronRight, Filter, Plus, X, Check } from 'lucide-react';
 import AnimalCard from '../../components/AnimalCard';
+import { petsService } from '../../services/petsService';
 
-
-// teste
-const MOCK_PRONTUARIOS = [
-  { 
-    id: 1, 
-    animalName: 'Theo', 
-    species: 'Cachorro', 
-    breed: 'Shih Tzu', 
-    tutor: 'Julia Eduarda Fernandes Silva', 
-    lastVisit: '12/04/2026', 
-    status: 'Ativo',
-    avatarColor: 'bg-blue-100 text-blue-600'
-  },
-  { 
-    id: 2, 
-    animalName: 'Mel', 
-    species: 'Cachorro', 
-    breed: 'SRD', 
-    tutor: 'Julia Eduarda Fernandes Silva', 
-    lastVisit: '10/04/2026', 
-    status: 'Ativo',
-    avatarColor: 'bg-purple-100 text-purple-600'
-  },
-  { 
-    id: 3, 
-    animalName: 'Luna', 
-    species: 'Gato', 
-    breed: 'Siamês', 
-    tutor: 'Ana Beatriz Souza', 
-    lastVisit: '05/04/2026', 
-    status: 'Ativo',
-    avatarColor: 'bg-pink-100 text-pink-600'
-  },
-  { 
-    id: 4, 
-    animalName: 'Thor', 
-    species: 'Cachorro', 
-    breed: 'Golden Retriever', 
-    tutor: 'Marcos Oliveira', 
-    lastVisit: '28/03/2026', 
-    status: 'Inativo',
-    avatarColor: 'bg-orange-100 text-orange-600'
-  },
-  { 
-    id: 5, 
-    animalName: 'Pipoca', 
-    species: 'Gato', 
-    breed: 'Persa', 
-    tutor: 'Julia Eduarda Fernandes Silva', 
-    lastVisit: '15/03/2026', 
-    status: 'Ativo',
-    avatarColor: 'bg-yellow-100 text-yellow-600'
-  },
-  { 
-    id: 6, 
-    animalName: 'Bidu', 
-    species: 'Cachorro', 
-    breed: 'Poodle', 
-    tutor: 'Ricardo Santos', 
-    lastVisit: '01/03/2026', 
-    status: 'Ativo',
-    avatarColor: 'bg-green-100 text-green-600'
-  }
-];
 
 const ViewProntuarios = ({ onOpenRecord }) => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
-  
-
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [records, setRecords] = useState([]);
   const [filterSpecies, setFilterSpecies] = useState('Todos');
   const [filterStatus, setFilterStatus] = useState('Todos');
 
+  useEffect(() => {
+    let active = true;
+    const carregar = async () => {
+      try {
+        setLoading(true);
+        setError('');
+        const resPets = await petsService.list();
+        const pets = resPets.data || [];
+
+        const recordsByPet = await Promise.allSettled(
+          pets.map((pet) => petsService.getRecords(pet.id))
+        );
+
+        const mapped = pets.map((pet, index) => {
+          const resRecords = recordsByPet[index];
+          const items = resRecords.status === 'fulfilled' ? (resRecords.value.data || []) : [];
+          const lastDate = items
+            .map((item) => item.data || item.date)
+            .filter(Boolean)
+            .sort()
+            .pop();
+
+          return {
+            id: pet.id,
+            animalName: pet.nome,
+            species: pet.especie,
+            breed: pet.raca || 'SRD',
+            tutor: pet.tutor_nome || 'Tutor',
+            lastVisit: lastDate ? new Date(lastDate).toLocaleDateString('pt-BR') : '—',
+            status: pet.ativo ? 'Ativo' : 'Inativo',
+          };
+        });
+
+        if (!active) return;
+        setRecords(mapped);
+      } catch (err) {
+        if (!active) return;
+        setError(err.message || 'Erro ao carregar prontuarios');
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    carregar();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const filteredRecords = useMemo(() => {
-    return MOCK_PRONTUARIOS.filter(record => {
-      const matchesSearch = 
+    return records.filter(record => {
+      const matchesSearch =
         record.animalName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         record.tutor.toLowerCase().includes(searchTerm.toLowerCase()) ||
         record.species.toLowerCase().includes(searchTerm.toLowerCase());
-      
+
       const matchesSpecies = filterSpecies === 'Todos' || record.species === filterSpecies;
       const matchesStatus = filterStatus === 'Todos' || record.status === filterStatus;
 
       return matchesSearch && matchesSpecies && matchesStatus;
     });
-  }, [searchTerm, filterSpecies, filterStatus]);
+  }, [records, searchTerm, filterSpecies, filterStatus]);
 
   const activeFiltersCount = (filterSpecies !== 'Todos' ? 1 : 0) + (filterStatus !== 'Todos' ? 1 : 0);
 
@@ -218,7 +205,15 @@ const ViewProntuarios = ({ onOpenRecord }) => {
 
       {/* listagem */}
       <div className="flex-1 flex flex-col gap-4 overflow-y-auto pr-2 custom-scrollbar">
-        {filteredRecords.length > 0 ? (
+        {error && (
+          <div className="p-4 rounded-2xl border border-red-200 bg-red-50 text-red-700 text-sm">
+            {error}
+          </div>
+        )}
+
+        {loading ? (
+          <div className="flex items-center justify-center py-24 text-gray-400">Carregando prontuarios...</div>
+        ) : filteredRecords.length > 0 ? (
           filteredRecords.map(record => (
             <AnimalCard
               key={record.id}

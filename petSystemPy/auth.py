@@ -2,6 +2,7 @@ from functools import wraps
 from flask import jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token, create_refresh_token
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy import func
 from models import User, db
 
 
@@ -20,7 +21,8 @@ def verify_password(senha_hash, senha):
 
 def authenticate_user(login, senha):
     """Authenticate user by login and password"""
-    usuario = User.query.filter_by(login=login).first()
+    login_normalizado = (login or '').strip().lower()
+    usuario = User.query.filter(func.lower(User.login) == login_normalizado).first()
     if usuario and verify_password(usuario.senha_hash, senha):
         return usuario
     return None

@@ -1,7 +1,8 @@
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = 'http://127.0.0.1:5000/api';
 
 export const apiCall = async (endpoint, options = {}) => {
   const token = localStorage.getItem('access_token');
+  const isAuthEndpoint = endpoint.startsWith('/auth/');
   
   const headers = {
     'Content-Type': 'application/json',
@@ -30,10 +31,16 @@ export const apiCall = async (endpoint, options = {}) => {
     
     return data;
   } catch (error) {
-    if (error.status === 401) {
+    // Don't force a full redirect on 401 here; let callers handle auth flows.
+    if (error && error.status === 401 && token && !isAuthEndpoint) {
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
-      window.location.href = '/';
+      // Dispatch a global event so the SPA can redirect or show login UI gracefully
+      try {
+        window.dispatchEvent(new CustomEvent('auth:expired'));
+      } catch (e) {
+        // ignore in non-browser environments
+      }
     }
     throw error;
   }

@@ -76,6 +76,18 @@ export default function Cadastros({
   const [modalNovoPetAberta, setModalNovoPetAberta] = useState(false);
   const [novoPet, setNovoPet] = useState({ nome: "", especie: "Cachorro", raca: "", idade: 0, sexo: "M", peso: 0, observacoes: "" });
   const [sortConfig, setSortConfig] = useState({ key: "nome", direction: "asc" });
+  const [editando, setEditando] = useState(null);
+  const [editForm, setEditForm] = useState({
+    nome: "",
+    login: "",
+    telefone: "",
+    endereco: "",
+    tipoAcesso: TIPOS_ACESSO.USUARIO,
+    password: "",
+  });
+  const [editError, setEditError] = useState("");
+  const [editSuccess, setEditSuccess] = useState("");
+  const [editLoading, setEditLoading] = useState(false);
 
   useEffect(() => {
     const carregarRegistros = async () => {
@@ -174,7 +186,44 @@ export default function Cadastros({
   }
 
   function handleEditar(usuario) {
-    console.log("Editar:", usuario);
+    const abrirModal = (dados) => {
+      setEditForm(dados);
+      setEditError("");
+      setEditSuccess("");
+      setEditando(usuario);
+    };
+
+    if (usuario.origem === "tutor") {
+      setEditLoading(true);
+      tutoresService
+        .getById(usuario.backendId)
+        .then((res) => {
+          const tutor = res.data;
+          abrirModal({
+            nome: tutor.nome || "",
+            login: tutor.login || "",
+            telefone: tutor.telefone || "",
+            endereco: tutor.endereco || "",
+            tipoAcesso: TIPOS_ACESSO.CLIENTE,
+            password: "",
+          });
+        })
+        .catch((err) => {
+          setEditError(err.message || "Erro ao carregar dados do tutor");
+        })
+        .finally(() => setEditLoading(false));
+      return;
+    }
+
+    const tipoAcesso = usuario.tipoAcesso || TIPOS_ACESSO.USUARIO;
+    abrirModal({
+      nome: usuario.nome || "",
+      login: usuario.email || "",
+      telefone: "",
+      endereco: "",
+      tipoAcesso,
+      password: "",
+    });
   }
 
   function handleExcluir(usuario) {
@@ -257,6 +306,101 @@ export default function Cadastros({
     }
   }
 
+  function handleEditChange(key, value) {
+    setEditForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function mapTipoParaApi(tipoAcesso) {
+    if (tipoAcesso === TIPOS_ACESSO.ADMINISTRADOR) return "admin";
+    return "atendente";
+  }
+
+  async function salvarEdicao() {
+    if (!editando) return;
+
+    if (!editForm.nome.trim()) {
+      setEditError("Nome é obrigatório");
+      return;
+    }
+
+    if (editando.origem === "user" && !editForm.login.trim()) {
+      setEditError("Login é obrigatório");
+      return;
+    }
+
+    try {
+      setEditLoading(true);
+      setEditError("");
+      setEditSuccess("");
+
+      let senhaAtualizada = false;
+
+      if (editando.origem === "tutor") {
+        await tutoresService.update(editando.backendId, {
+          nome: editForm.nome.trim(),
+          telefone: editForm.telefone.trim(),
+          endereco: editForm.endereco.trim(),
+          login: editForm.login.trim(),
+        });
+
+        setUsuarios((prev) =>
+          prev.map((u) =>
+            u.id === editando.id
+              ? {
+                  ...u,
+                  nome: editForm.nome.trim(),
+                  celular: editForm.telefone.trim(),
+                  email: editForm.login.trim(),
+                }
+              : u
+          )
+        );
+      } else {
+        const payload = {
+          nome: editForm.nome.trim(),
+          login: editForm.login.trim(),
+          tipo: mapTipoParaApi(editForm.tipoAcesso),
+        };
+
+        if (editForm.password.trim()) {
+          if (editForm.password.length < 6) {
+            setEditError("Senha deve ter pelo menos 6 caracteres");
+            return;
+          }
+          payload.password = editForm.password;
+          senhaAtualizada = true;
+        }
+
+        await usuariosService.update(editando.backendId, payload);
+
+        if (senhaAtualizada) {
+          setEditSuccess("Senha alterada");
+        }
+
+        setUsuarios((prev) =>
+          prev.map((u) =>
+            u.id === editando.id
+              ? {
+                  ...u,
+                  nome: editForm.nome.trim(),
+                  email: editForm.login.trim(),
+                  tipoAcesso: editForm.tipoAcesso,
+                }
+              : u
+          )
+        );
+      }
+
+      if (!senhaAtualizada) {
+        setEditando(null);
+      }
+    } catch (err) {
+      setEditError(err.message || "Erro ao atualizar cadastro");
+    } finally {
+      setEditLoading(false);
+    }
+  }
+
   return (
     <div className="flex-1 min-h-screen bg-gray-50">
       <div className="flex justify-end items-center gap-3 px-8 py-4 bg-white border-b border-gray-100 shadow-sm">
@@ -325,7 +469,7 @@ export default function Cadastros({
           </div>
         )}
 
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-visible">
           <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_180px_auto] items-center px-5 py-3 border-b border-gray-100 gap-4">
             <button
               type="button"
@@ -552,6 +696,129 @@ export default function Cadastros({
                 className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl py-2.5 transition-colors text-sm disabled:opacity-50"
               >
                 Adicionar Pet
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editando && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-gray-900">Editar cadastro</h2>
+              <button
+                onClick={() => setEditando(null)}
+                className="text-gray-400 hover:text-gray-700 text-2xl leading-none"
+                disabled={editLoading}
+              >
+                ×
+              </button>
+            </div>
+
+            {editError && (
+              <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                {editError}
+              </div>
+            )}
+
+            {editSuccess && (
+              <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
+                {editSuccess}
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-semibold text-gray-700 block mb-1.5">Nome *</label>
+                <input
+                  type="text"
+                  value={editForm.nome}
+                  onChange={(e) => handleEditChange("nome", e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
+                />
+              </div>
+
+              {editando.origem === "tutor" ? (
+                <>
+                  <div>
+                    <label className="text-sm font-semibold text-gray-700 block mb-1.5">Telefone</label>
+                    <input
+                      type="text"
+                      value={editForm.telefone}
+                      onChange={(e) => handleEditChange("telefone", e.target.value)}
+                      className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold text-gray-700 block mb-1.5">Endereco</label>
+                    <input
+                      type="text"
+                      value={editForm.endereco}
+                      onChange={(e) => handleEditChange("endereco", e.target.value)}
+                      className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold text-gray-700 block mb-1.5">Login</label>
+                    <input
+                      type="email"
+                      value={editForm.login}
+                      onChange={(e) => handleEditChange("login", e.target.value)}
+                      className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <label className="text-sm font-semibold text-gray-700 block mb-1.5">Login *</label>
+                    <input
+                      type="email"
+                      value={editForm.login}
+                      onChange={(e) => handleEditChange("login", e.target.value)}
+                      className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold text-gray-700 block mb-1.5">Tipo de acesso</label>
+                    <select
+                      value={editForm.tipoAcesso}
+                      onChange={(e) => handleEditChange("tipoAcesso", e.target.value)}
+                      className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 bg-white"
+                    >
+                      <option value={TIPOS_ACESSO.USUARIO}>Usuário</option>
+                      <option value={TIPOS_ACESSO.ADMINISTRADOR}>Administrador</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold text-gray-700 block mb-1.5">Nova senha (opcional)</label>
+                    <input
+                      type="password"
+                      value={editForm.password}
+                      onChange={(e) => handleEditChange("password", e.target.value)}
+                      placeholder="Deixe em branco para manter"
+                      className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setEditando(null)}
+                disabled={editLoading}
+                className="flex-1 border border-gray-300 text-gray-700 font-semibold rounded-xl py-2.5 hover:bg-gray-50 transition-colors text-sm"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={salvarEdicao}
+                disabled={editLoading}
+                className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl py-2.5 transition-colors text-sm disabled:opacity-50"
+              >
+                {editLoading ? "Salvando..." : "Salvar"}
               </button>
             </div>
           </div>

@@ -1,30 +1,130 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Search, CalendarDays } from 'lucide-react';
+import { tutoresService } from '../../services/tutoresService';
+import { petsService } from '../../services/petsService';
+import { veterinariosService } from '../../services/veterinariosService';
 
 const FormNewAppointment = ({ onCancel, onSubmit, onGoToAgenda }) => {
   const [formData, setFormData] = useState({
     type: '',
-    doctor: '',
+    vetId: '',
     procedure: '',
-    tutor: '',
-    patient: '',
+    tutorSearch: '',
+    tutorId: '',
+    petId: '',
     date: '',
     time: ''
   });
+  const [tutores, setTutores] = useState([]);
+  const [pets, setPets] = useState([]);
+  const [veterinarios, setVeterinarios] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // dados já estão prontos para o backend (provavelmente)
-    onSubmit(formData);
+    if (!formData.tutorId || !formData.petId || !formData.vetId) {
+      setError('Selecione tutor, pet e veterinario.');
+      return;
+    }
+    setError('');
+    try {
+      setLoading(true);
+      await onSubmit({
+        type: formData.type,
+        vetId: parseInt(formData.vetId, 10),
+        petId: parseInt(formData.petId, 10),
+        procedure: formData.procedure,
+        date: formData.date,
+        time: formData.time,
+      });
+    } catch (err) {
+      setError(err.message || 'Erro ao criar agendamento');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const inputClass = "w-full bg-white border border-gray-200 rounded-xl p-3 outline-none focus:border-[#8A2BE2] transition-colors text-sm";
   const labelClass = "block text-sm font-bold text-gray-700 mb-2";
+
+  useEffect(() => {
+    let active = true;
+    const carregar = async () => {
+      try {
+        setLoading(true);
+        if (!active) return;
+        const resTutores = await tutoresService.list();
+        if (!active) return;
+        setTutores(resTutores.data || []);
+      } catch (err) {
+        if (!active) return;
+        setError(err.message || 'Erro ao carregar tutores');
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    carregar();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    const carregarVeterinarios = async () => {
+      try {
+        const resVets = await veterinariosService.list();
+        if (!active) return;
+        setVeterinarios(resVets.data || []);
+      } catch (err) {
+        if (!active) return;
+        setError(err.message || 'Erro ao carregar veterinários');
+      }
+    };
+
+    carregarVeterinarios();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    const carregarPets = async () => {
+      if (!formData.tutorId) {
+        setPets([]);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const resPets = await petsService.list({ tutor_id: formData.tutorId });
+        if (!active) return;
+        setPets(resPets.data || []);
+      } catch (err) {
+        if (!active) return;
+        setError(err.message || 'Erro ao carregar pets');
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    carregarPets();
+    return () => {
+      active = false;
+    };
+  }, [formData.tutorId]);
+
+  const tutoresFiltrados = useMemo(() => {
+    const termo = formData.tutorSearch.toLowerCase();
+    if (!termo) return tutores;
+    return tutores.filter((t) => t.nome.toLowerCase().includes(termo));
+  }, [tutores, formData.tutorSearch]);
 
   return (
     <div className="min-h-screen bg-[#F0F2F5] flex flex-col">
@@ -44,6 +144,11 @@ const FormNewAppointment = ({ onCancel, onSubmit, onGoToAgenda }) => {
 
         <div className="flex justify-center">
           <form onSubmit={handleSubmit} className="bg-white rounded-3xl shadow-sm p-8 border border-gray-100 space-y-6 w-full max-w-4xl">
+        {error && (
+          <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+            {error}
+          </div>
+        )}
         <div>
           <label className={labelClass}>Tipo de atendimento (obrigatório):</label>
           <select name="type" required value={formData.type} onChange={handleChange} className={inputClass}>
@@ -55,11 +160,20 @@ const FormNewAppointment = ({ onCancel, onSubmit, onGoToAgenda }) => {
 
         <div>
           <label className={labelClass}>Veterinário responsável:</label>
-          <select name="doctor" value={formData.doctor} onChange={handleChange} className={inputClass}>
+          <select
+            name="vetId"
+            value={formData.vetId}
+            onChange={handleChange}
+            className={inputClass}
+            required
+            disabled={loading}
+          >
             <option value="">Selecionar veterinário...</option>
-            <option value="Dr. Exemplo 1">Dr. Exemplo 1</option>
-            <option value="Dr. Exemplo 2">Dr. Exemplo 2</option>
-            <option value="Dra. Lima">Dra. Lima</option>
+            {veterinarios.map((vet) => (
+              <option key={vet.id} value={vet.id}>
+                {vet.nome}
+              </option>
+            ))}
           </select>
         </div>
 
@@ -75,30 +189,47 @@ const FormNewAppointment = ({ onCancel, onSubmit, onGoToAgenda }) => {
         </div>
 
 
-        { /* DEPOIS TEM QUE ALTERAR PARA PESQUISAR O TUTOR E APARECER OS ANIMAIS ESPECIFICOS DESSE TUTOR */ }
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className={labelClass}>Nome do tutor:</label>
             <div className="relative">
               <input 
-                name="tutor" 
+                name="tutorSearch" 
                 type="text" 
                 placeholder="Pesquisar tutor..." 
-                value={formData.tutor} 
+                value={formData.tutorSearch} 
                 onChange={handleChange} 
                 className={`${inputClass} pl-10`}
               />
               <Search className="absolute left-3 top-3 text-gray-400" size={18} />
             </div>
+            <select
+              name="tutorId"
+              value={formData.tutorId}
+              onChange={(e) => {
+                handleChange(e);
+                setFormData((prev) => ({ ...prev, petId: '' }));
+              }}
+              className={`${inputClass} mt-3`}
+              disabled={loading}
+            >
+              <option value="">Selecionar tutor...</option>
+              {tutoresFiltrados.map((tutor) => (
+                <option key={tutor.id} value={tutor.id}>
+                  {tutor.nome}
+                </option>
+              ))}
+            </select>
           </div>
           <div>
             <label className={labelClass}>Animal:</label>
-            <select name="patient" value={formData.patient} onChange={handleChange} className={inputClass}>
+            <select name="petId" value={formData.petId} onChange={handleChange} className={inputClass} disabled={loading || !formData.tutorId}>
               <option value="">Selecionar animal...</option>
-              <option value="Mel">Mel</option>
-              <option value="Theo">Theo</option>
-              <option value="Pitoco">Pitoco</option>
-              <option value="Luna">Luna</option>
+              {pets.map((pet) => (
+                <option key={pet.id} value={pet.id}>
+                  {pet.nome}
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -147,6 +278,7 @@ const FormNewAppointment = ({ onCancel, onSubmit, onGoToAgenda }) => {
           <button 
             type="submit" 
             className="flex-1 bg-[#8A2BE2] text-white py-4 rounded-2xl font-bold shadow-lg shadow-purple-100 hover:bg-[#7023b8] transition-all"
+            disabled={loading}
           >
             Confirmar agendamento
           </button>

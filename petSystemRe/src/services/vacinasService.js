@@ -1,6 +1,9 @@
 import { apiCall } from './api';
 
 export const vacinasService = {
+  list: async () => {
+    return apiCall('/vacinas', { method: 'GET' });
+  },
   listByPet: async (petId) => {
     return apiCall(`/pets/${petId}/vaccines`, { method: 'GET' });
   },

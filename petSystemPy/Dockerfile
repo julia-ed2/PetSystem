@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY requirements.txt .
 RUN pip install --user --no-cache-dir -r requirements.txt
+RUN pip install --user --no-cache-dir Flask-JWT-Extended==4.4.4
 
 FROM python:3.11-slim
 

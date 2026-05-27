@@ -1,38 +1,89 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
 import AnimalCard from '../components/AnimalCard';
+import { petsService } from '../services/petsService';
+import { vacinasService } from '../services/vacinasService';
+import { veterinariosService } from '../services/veterinariosService';
 
-/*
- SIMULAÇÃO DE API 
- */
-const MOCK_ANIMALS = [
-  { id: 1, name: 'Theo', type: 'Cachorro', breed: 'Shih Tzu', tutor: 'Julia Eduarda Fernandes Silva' },
-  { id: 2, name: 'Mel', type: 'Cachorro', breed: 'Sem raça definida', tutor: 'Julia Eduarda Fernandes Silva' },
-  { id: 3, name: 'Thor', type: 'Cachorro', breed: 'Golden Retriever', tutor: 'Marcos Oliveira' },
-  { id: 4, name: 'Luna', type: 'Gato', breed: 'Siamês', tutor: 'Ana Beatriz Souza' },
-  { id: 5, name: 'Pipoca', type: 'Gato', breed: 'Persa', tutor: 'Julia Eduarda Fernandes Silva' },
-  { id: 6, name: 'Bidu', type: 'Cachorro', breed: 'Poodle', tutor: 'Ricardo Santos' },
+const FALLBACK_VACINAS = [
+  { id: null, name: 'V4 (Tríplice + Parvovirose)' },
+  { id: null, name: 'V5 (Tríplice + Parvovirose + Raiva)' },
+  { id: null, name: 'Raiva' },
+  { id: null, name: 'Tríplice Felina' },
+  { id: null, name: 'Leucemia Felina' },
 ];
-
-
 
 const ViewVaccination = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
   const [vaccineData, setVaccineData] = useState({
-    vaccine: '',
+    vaccineId: '', // either vacina_id or fallback 'name:...'
+    vaccineName: '',
     batch: '',
     appDate: '',
     nextReinforcement: '',
-    notes: ''
+    notes: '',
+    veterinarianId: ''
   });
+  const [animals, setAnimals] = useState([]);
+  const [veterinarios, setVeterinarios] = useState([]);
+  const [vacinasCatalogo, setVacinasCatalogo] = useState(FALLBACK_VACINAS);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    const carregar = async () => {
+      try {
+        setLoading(true);
+        setError('');
+
+        const [resPets, resVets, resVacinas] = await Promise.all([
+          petsService.list(),
+          veterinariosService.list(),
+          vacinasService.list().catch(() => ({ success: false })),
+        ]);
+
+        if (!active) return;
+
+        setAnimals((resPets.data || []).map((pet) => ({
+          id: pet.id,
+          name: pet.nome,
+          type: pet.especie,
+          breed: pet.raca || 'SRD',
+          tutor: pet.tutor_nome || 'Tutor',
+        })));
+
+        setVeterinarios((resVets.data || []).map((vet) => ({
+          id: vet.id,
+          name: vet.nome,
+          crmv: vet.crmv,
+        })));
+        if (resVacinas && resVacinas.success && Array.isArray(resVacinas.data) && resVacinas.data.length > 0) {
+          setVacinasCatalogo((resVacinas.data || []).map((v) => ({ id: v.id || v.id_vacina || null, name: v.nome || v.name })));
+        } else {
+          setVacinasCatalogo(FALLBACK_VACINAS);
+        }
+      } catch (err) {
+        if (!active) return;
+        setError(err.message || 'Erro ao carregar animais');
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    carregar();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const filteredAnimals = useMemo(() => {
-    return MOCK_ANIMALS.filter(animal => 
+    return animals.filter(animal => 
       animal.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       animal.tutor.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }, [searchTerm]);
+  }, [animals, searchTerm]);
 
   const toggleSelect = (id) => {
     setSelectedIds(prev => 
@@ -45,16 +96,48 @@ const ViewVaccination = () => {
     setVaccineData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     if (selectedIds.length === 0) return alert("Selecione pelo menos um animal.");
-    
-    const payload = {
-      animals: selectedIds,
-      vaccineInfo: vaccineData
-    };
-    
-    console.log("Enviando para o Backend:", payload);
-    alert(`Sucesso! ${selectedIds.length} animais registrados.`);
+    const selectedVaccineRaw = vaccineData.vaccineId;
+    const isVaccineSelected = selectedVaccineRaw && (String(selectedVaccineRaw).startsWith('name:') || Number(selectedVaccineRaw) > 0);
+    if (!isVaccineSelected || !vaccineData.veterinarianId) {
+      setError('Informe vacina e veterinário.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError('');
+      setSuccess('');
+
+      const payloadTemplate = {
+        veterinarian_id: parseInt(vaccineData.veterinarianId, 10),
+        appDate: vaccineData.appDate || null,
+        next_dose_date: vaccineData.nextReinforcement || null,
+        notes: vaccineData.notes || '',
+        batch: vaccineData.batch || '',
+      };
+
+      const vaccineValue = selectedVaccineRaw;
+      const vaccineInfo = {};
+      if (String(vaccineValue).startsWith('name:')) {
+        vaccineInfo.name = String(vaccineValue).replace(/^name:/, '');
+      } else {
+        const id = Number(vaccineValue);
+        if (!Number.isNaN(id) && id > 0) vaccineInfo.vacina_id = id;
+      }
+
+      const finalPayload = { ...payloadTemplate, ...vaccineInfo };
+
+      await vacinasService.recordVaccinesMultiple(selectedIds, finalPayload);
+
+      setSuccess(`Sucesso! ${selectedIds.length} animais registrados.`);
+      setSelectedIds([]);
+    } catch (err) {
+      setError(err.message || 'Erro ao registrar vacinas');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const inputClass = "w-full bg-white border border-gray-200 rounded-xl p-3 outline-none focus:border-[#8A2BE2] transition-colors text-sm";
@@ -77,6 +160,17 @@ const ViewVaccination = () => {
             </span>
           </div>
 
+          {error && (
+            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+              {error}
+            </div>
+          )}
+          {success && (
+            <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
+              {success}
+            </div>
+          )}
+
           <div className="relative mb-6">
             <input 
               type="text" 
@@ -89,7 +183,9 @@ const ViewVaccination = () => {
           </div>
 
           <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-            {filteredAnimals.length > 0 ? (
+            {loading ? (
+              <div className="text-center py-20 text-gray-400">Carregando animais...</div>
+            ) : filteredAnimals.length > 0 ? (
               filteredAnimals.map(animal => (
                 <AnimalCard 
                   key={animal.id} 
@@ -111,11 +207,34 @@ const ViewVaccination = () => {
           <div className="space-y-5 flex-1">
             <div>
               <label className={labelClass}>Vacina/ Imunizante:</label>
-              <select name="vaccine" value={vaccineData.vaccine} onChange={handleInputChange} className={inputClass}>
+              <select name="vaccineId" value={vaccineData.vaccineId} onChange={(e) => {
+                const v = e.target.value;
+                // if value starts with "name:" it's a fallback name, otherwise numeric id
+                setVaccineData(prev => ({ ...prev, vaccineId: v, vaccineName: v && String(v).startsWith('name:') ? v.replace(/^name:/, '') : '' }));
+              }} className={inputClass}>
                 <option value="">Selecione a vacina...</option>
-                <option value="v10">V10 Felina</option>
-                <option value="antirrabica">Antirrábica</option>
-                <option value="giardia">Giárdia</option>
+                {vacinasCatalogo.map((vacina, idx) => (
+                  <option key={`${vacina.id ?? 'x'}-${idx}`} value={vacina.id ? vacina.id : `name:${vacina.name}`}>
+                    {vacina.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className={labelClass}>Veterinário:</label>
+              <select
+                name="veterinarianId"
+                value={vaccineData.veterinarianId}
+                onChange={handleInputChange}
+                className={inputClass}
+              >
+                <option value="">Selecione o veterinário...</option>
+                {veterinarios.map((vet) => (
+                  <option key={vet.id} value={vet.id}>
+                    {vet.name} ({vet.crmv})
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -172,7 +291,8 @@ const ViewVaccination = () => {
 
           <button 
             onClick={handleRegister}
-            className="w-full bg-[#8A2BE2] text-white py-4 rounded-2xl font-bold shadow-lg shadow-purple-100 hover:bg-[#7023b8] transition-all mt-8"
+            className="w-full bg-[#8A2BE2] text-white py-4 rounded-2xl font-bold shadow-lg shadow-purple-100 hover:bg-[#7023b8] transition-all mt-8 disabled:opacity-50"
+            disabled={loading}
           >
             Registrar animais
           </button>

@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, Outlet, useLocation, useParams } from 'react-router-dom';
 
 import { AuthProvider } from '../context/AuthContext';
 import { useAuth } from '../hooks/useAuth';
 import { authService } from '../services/authService';
 import { usuariosService } from '../services/usuariosService';
+import { agendamentosService } from '../services/agendamentosService';
 
 import Login from './Login';
 import CadastroPage from './Cadastro';
@@ -22,28 +23,64 @@ import Cadastros from './cadastros/Cadastros';
 import CadastrarCliente from './cadastros/CadastrarCliente';
 import CadastrarUsuario from './cadastros/CadastroUsuario';
 import PerfilUsuario from './cadastros/PerfilUsuario';
+import AuthExpiryHandler from '../components/AuthExpiryHandler';
 
 
 export default function App() {
-    const [appointments, setAppointments] = useState([
-        { id: 1, type: 'EXAME', time: '09:00', patient: 'Mel', procedure: 'Hemograma completo', doctor: 'Dr. exemplo 1', date: '2026-04-03' },
-        { id: 2, type: 'EXAME', time: '10:30', patient: 'Theo', procedure: 'Ultrassom', doctor: 'Dr. exemplo 2', date: '2026-04-03' },
-        { id: 3, type: 'CIRURGIA', time: '13:00', patient: 'Pitoco', procedure: 'Castração', doctor: 'Dr. exemplo 3', date: '2026-04-03' },
-    ]);
+    const [appointments, setAppointments] = useState([]);
+    const [appointmentsLoading, setAppointmentsLoading] = useState(true);
 
     const [saidasEstoque, setSaidasEstoque] = useState([]);
 
-    const handleAddNewAppointment = (appointmentData) => {
-        const newAppointment = {
-            id: Date.now(),
-            ...appointmentData,
-            colorClass:
-                appointmentData.type === 'CIRURGIA'
-                    ? 'border-red-500'
-                    : 'border-blue-500',
-        };
+    const formatHora = (hora) => {
+        if (!hora) return '';
+        if (hora.length >= 5) return hora.slice(0, 5);
+        return hora;
+    };
 
-        setAppointments((prev) => [...prev, newAppointment]);
+    const mapAgendamento = (item) => ({
+        id: item.id,
+        type: item.tipo,
+        time: formatHora(item.hora),
+        patient: item.pet_nome || 'Pet',
+        procedure: item.observacoes || item.tipo,
+        doctor: item.veterinario_nome || 'Veterinario',
+        date: item.data,
+    });
+
+    const carregarAgendamentos = async () => {
+        try {
+            setAppointmentsLoading(true);
+            const res = await agendamentosService.list();
+            const data = (res.data || []).map(mapAgendamento);
+            setAppointments(data);
+        } catch {
+            setAppointments([]);
+        } finally {
+            setAppointmentsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        carregarAgendamentos();
+    }, []);
+
+    const handleAddNewAppointment = async (appointmentData) => {
+        const hora = appointmentData.time
+            ? `${appointmentData.date}T${appointmentData.time.length === 5 ? `${appointmentData.time}:00` : appointmentData.time}`
+            : '';
+
+        await agendamentosService.create({
+            pet_id: appointmentData.petId,
+            veterinario_id: appointmentData.vetId,
+            data: appointmentData.date,
+            hora,
+            tipo: appointmentData.type,
+            observacoes: appointmentData.procedure || '',
+            status: 'agendado',
+        });
+
+        await carregarAgendamentos();
     };
 
     const handleRegistrarSaidaEstoque = (itens) => {
@@ -65,6 +102,7 @@ export default function App() {
     return (
         <AuthProvider>
             <BrowserRouter>
+                <AuthExpiryHandler />
                 <Routes>
                     <Route path="/" element={<LoginWrapper />} />
                     <Route path="/cadastro" element={<CadastroWrapper />} />
@@ -72,7 +110,7 @@ export default function App() {
                     <Route path="/vacinacao" element={<Navigate replace to="/dashboard/vacinacao" />} />
                     <Route path="/dashboard" element={<DashboardLayout />}>
                         <Route index element={<TelaPrincipalWrapper appointments={appointments} />} />
-                        <Route path="agenda" element={<AgendaWrapper appointments={appointments} />} />
+                        <Route path="agenda" element={<AgendaWrapper appointments={appointments} loading={appointmentsLoading} />} />
                         <Route
                             path="form-agenda"
                             element={
@@ -161,8 +199,15 @@ function LoginWrapper() {
 
 function CadastroWrapper() {
     const navigate = useNavigate();
+    const { register } = useAuth();
 
-    return <CadastroPage onGoToLogin={() => navigate('/')} />;
+    return (
+        <CadastroPage
+            onGoToLogin={() => navigate('/')}
+            onGoToTelaPrincipal={() => navigate('/dashboard')}
+            onRegister={register}
+        />
+    );
 }
 
 function TelaPrincipalWrapper({ appointments }) {
@@ -249,12 +294,13 @@ function PerfilUsuarioWrapper() {
     );
 }
 
-function AgendaWrapper({ appointments }) {
+function AgendaWrapper({ appointments, loading }) {
     const navigate = useNavigate();
 
     return (
         <ViewAgenda
             appointments={appointments}
+            loading={loading}
             onNewAppointment={() => navigate('/dashboard/form-agenda')}
         />
     );
@@ -263,8 +309,8 @@ function AgendaWrapper({ appointments }) {
 function FormAgendaWrapper({ onSubmit }) {
     const navigate = useNavigate();
 
-    const handleSubmit = (data) => {
-        onSubmit(data);
+    const handleSubmit = async (data) => {
+        await onSubmit(data);
         navigate('/dashboard/agenda'); // volta pra agenda depois de salvar
     };
 

@@ -10,6 +10,44 @@ from models import db
 migrate = Migrate()
 jwt = JWTManager()
 
+DEFAULT_VETERINARIOS = [
+    {
+        'nome': 'Dr. Pedro Mendes',
+        'crmv': 'CRMV/SP 1234',
+        'telefone': '11999995555',
+        'email': 'pedro@clinica.com',
+    },
+    {
+        'nome': 'Dra. Fernanda Lima',
+        'crmv': 'CRMV/SP 5678',
+        'telefone': '11999994444',
+        'email': 'fernanda@clinica.com',
+    },
+    {
+        'nome': 'Dr. Lucas Ferreira',
+        'crmv': 'CRMV/SP 9012',
+        'telefone': '11999993333',
+        'email': 'lucas@clinica.com',
+    },
+]
+
+
+def ensure_default_veterinarios(app):
+    with app.app_context():
+        try:
+            from models import Veterinario
+
+            if Veterinario.query.count() > 0:
+                return
+
+            for data in DEFAULT_VETERINARIOS:
+                db.session.add(Veterinario(ativo=True, **data))
+
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            print(f'⚠️  Warning: Could not seed default veterinarios: {e}')
+
 
 def create_app(config_name=None):
     """
@@ -26,17 +64,13 @@ def create_app(config_name=None):
     migrate.init_app(app, db)
     jwt.init_app(app)
 
+    # During local development allow all origins for convenience (no credentials)
     CORS(app, resources={
         r"/api/*": {
-            "origins": [
-                "http://localhost:5173",
-                "http://localhost:3000",
-                "http://127.0.0.1:5173",
-                "http://127.0.0.1:3000"
-            ],
+            "origins": "*",
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             "allow_headers": ["Content-Type", "Authorization"],
-            "supports_credentials": True
+            "supports_credentials": False
         }
     })
 
@@ -75,6 +109,14 @@ def create_app(config_name=None):
         app.register_blueprint(usuarios_bp, url_prefix='/api')
     except ImportError as e:
         print(f'⚠️  Warning: Could not import usuarios blueprint: {e}')
+
+    try:
+        from api.veterinarios import veterinarios_bp
+        app.register_blueprint(veterinarios_bp, url_prefix='/api')
+    except ImportError as e:
+        print(f'⚠️  Warning: Could not import veterinarios blueprint: {e}')
+
+    ensure_default_veterinarios(app)
 
     @app.route('/api/health', methods=['GET'])
     def health():
