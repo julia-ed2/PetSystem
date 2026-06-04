@@ -20,8 +20,8 @@ done
 
 if [[ "$DOCKER_ONLY" -eq 1 ]]; then
 	echo "[INFO] Modo Docker-only: subindo todos os serviços via Docker Compose..."
-	docker compose -f "$ROOT_DIR/docker-compose.yml" build --no-cache backend
-	docker compose -f "$ROOT_DIR/docker-compose.yml" up --build
+	$DOCKER_COMPOSE -f "$ROOT_DIR/docker-compose.yml" build --no-cache backend
+	$DOCKER_COMPOSE -f "$ROOT_DIR/docker-compose.yml" up --build
 	exit $?
 fi
 
@@ -36,6 +36,16 @@ require_command() {
 }
 
 require_command docker "Instale o Docker antes de executar este projeto."
+
+# Detectar 'docker compose' (plugin) ou 'docker-compose' (standalone)
+if docker compose version >/dev/null 2>&1; then
+	DOCKER_COMPOSE="docker compose"
+elif command -v docker-compose >/dev/null 2>&1; then
+	DOCKER_COMPOSE="docker-compose"
+else
+	echo "[ERROR] Nem 'docker compose' nem 'docker-compose' encontrados. Atualize o Docker."
+	exit 1
+fi
 
 echo "[INFO] Verificando disponibilidade do Docker..."
 docker_ready=0
@@ -55,14 +65,26 @@ if [[ "$docker_ready" -ne 1 ]]; then
 fi
 
 # python/npm são necessários apenas no modo local (padrão). No modo --docker o compose cuida de tudo.
-require_command python3 "Instale o Python 3 antes de executar este projeto."
+# Detectar python3 ou python (algumas distros Linux usam 'python' para Python 3)
+PYTHON_CMD=""
+if command -v python3 >/dev/null 2>&1; then
+	PYTHON_CMD="python3"
+elif command -v python >/dev/null 2>&1; then
+	if python -c "import sys; sys.exit(0 if sys.version_info.major == 3 else 1)" 2>/dev/null; then
+		PYTHON_CMD="python"
+	fi
+fi
+if [[ -z "$PYTHON_CMD" ]]; then
+	echo "[ERROR] Python 3.10+ nao encontrado. Instale via: sudo apt install python3 / brew install python"
+	exit 1
+fi
+
 require_command npm "Instale o Node.js/npm antes de executar este projeto."
 
 # Verificar versão mínima do Python (3.10+)
-PY_VERSION=$(python3 -c "import sys; print(sys.version_info.minor)" 2>/dev/null || echo "0")
-PY_MAJOR=$(python3 -c "import sys; print(sys.version_info.major)" 2>/dev/null || echo "0")
-if [[ "$PY_MAJOR" -lt 3 ]] || [[ "$PY_MAJOR" -eq 3 && "$PY_VERSION" -lt 10 ]]; then
-	echo "[ERROR] Python 3.10+ é necessário. Versão atual: $(python3 --version 2>&1)"
+PY_VER=$("$PYTHON_CMD" -c "import sys; print(sys.version_info.major * 100 + sys.version_info.minor)" 2>/dev/null || echo "0")
+if [[ "$PY_VER" -lt 310 ]]; then
+	echo "[ERROR] Python 3.10+ é necessário. Versão atual: $($PYTHON_CMD --version 2>&1)"
 	exit 1
 fi
 
@@ -80,7 +102,7 @@ fi
 
 if [[ ! -d "$ROOT_DIR/.venv" ]]; then
 	echo "[INFO] Criando virtualenv..."
-	python3 -m venv "$ROOT_DIR/.venv" || {
+	"$PYTHON_CMD" -m venv "$ROOT_DIR/.venv" || {
 		echo "[ERROR] Nao foi possivel criar a virtualenv em $ROOT_DIR/.venv"
 		exit 1
 	}
@@ -131,22 +153,28 @@ fi
 
 free_port() {
 	local port="$1"
-	local pids
-	pids=$(lsof -t -i :"$port" -sTCP:LISTEN 2>/dev/null || true)
+	local pids=""
+
+	# lsof (macOS + maioria do Linux), ss (Linux moderno), fuser (Linux fallback)
+	if command -v lsof >/dev/null 2>&1; then
+		pids=$(lsof -t -i :"$port" -sTCP:LISTEN 2>/dev/null || true)
+	elif command -v ss >/dev/null 2>&1; then
+		pids=$(ss -tlnp "sport = :$port" 2>/dev/null | grep -oP 'pid=\K[0-9]+' || true)
+	elif command -v fuser >/dev/null 2>&1; then
+		pids=$(fuser "${port}/tcp" 2>/dev/null || true)
+	fi
 
 	if [[ -n "$pids" ]]; then
 		echo "[INFO] Liberando porta $port..."
 		for pid in $pids; do
 			local process_name
 			process_name=$(ps -p "$pid" -o comm= 2>/dev/null || true)
-
 			case "$process_name" in
 				*Docker*|*docker*|*com.docker*|*vpnkit*|*hyperkit*|*qemu*|*lima*|*colima*)
 					echo "[INFO] Ignorando processo do Docker/VM: PID $pid ($process_name)"
 					continue
 					;;
 			esac
-
 			kill "$pid" 2>/dev/null || true
 		done
 		sleep 1
@@ -157,7 +185,7 @@ free_port 5000
 free_port 5173
 
 echo "[INFO] Iniciando MySQL..."
-if ! docker compose -f "$ROOT_DIR/docker-compose.yml" up -d mysql; then
+if ! $DOCKER_COMPOSE -f "$ROOT_DIR/docker-compose.yml" up -d mysql; then
 	echo "[ERROR] Nao foi possivel iniciar o MySQL. Verifique se o Docker esta rodando."
 	exit 1
 fi
@@ -175,7 +203,7 @@ for attempt in $(seq 1 30); do
 done
 
 if [[ "$mysql_ready" -ne 1 ]]; then
-	echo "[ERROR] MySQL nao ficou pronto a tempo. Verifique com: docker compose -f \"$ROOT_DIR/docker-compose.yml\" logs --tail=50 mysql"
+	echo "[ERROR] MySQL nao ficou pronto a tempo. Verifique com: $DOCKER_COMPOSE -f \"$ROOT_DIR/docker-compose.yml\" logs --tail=50 mysql"
 	exit 1
 fi
 
