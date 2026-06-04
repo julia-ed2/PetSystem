@@ -70,7 +70,7 @@ def validarIdadePet(idade):
     """Validate pet age (must be positive number)"""
     try:
         idade_num = int(idade)
-        return idade_num > 0
+        return idade_num >= 0
     except (ValueError, TypeError):
         return False
 

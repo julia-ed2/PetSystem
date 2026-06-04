@@ -1,4 +1,4 @@
-import { LayoutGrid, Calendar, Syringe, ClipboardList, Users, Box, Wallet, LogOut, ChevronLeft, ChevronRight, Plus, Bell } from 'lucide-react';
+import { LayoutGrid, Calendar, Syringe, ClipboardList, Users, Box, Wallet } from 'lucide-react';
 import logoPet from '../assets/logoVet.png';
 
 const MenuItem = ({ label, active, onClick, icon: Icon }) => (

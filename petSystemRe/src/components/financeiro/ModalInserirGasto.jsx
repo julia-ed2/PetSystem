@@ -24,6 +24,9 @@ function ModalInserirGasto({ onClose, onInserir }) {
     if (!descricao || !data || !categoria || !valor || !status) {
       setErro("Preencha todos os campos."); return;
     }
+    if (parseFloat(valor) <= 0) {
+      setErro("O valor deve ser maior que zero."); return;
+    }
     setErro("");
     setLoad(true);
     const [y, m, d] = data.split("-");

@@ -1,9 +1,13 @@
-import React from 'react';
 import { useState, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Clock, Calendar as CalendarIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Clock } from 'lucide-react';
 import AppointmentCard from '../../components/AppointmentCard';
 
-const ViewAgenda = ({ appointments, loading, onNewAppointment }) => {
+const TYPE_STYLES = {
+  CIRURGIA: { dot: 'bg-red-500', border: 'border-red-500', text: 'text-red-600' },
+  EXAME:    { dot: 'bg-blue-500', border: 'border-blue-500', text: 'text-blue-600' },
+};
+
+const ViewAgenda = ({ appointments = [], loading, onNewAppointment }) => {
   const [viewMode, setViewMode] = useState('mes'); 
   const [currentDate, setCurrentDate] = useState(new Date()); // Controla o mês/semana visível
   const [selectedDate, setSelectedDate] = useState(new Date()); // Data selecionada para a lateral
@@ -52,7 +56,20 @@ const ViewAgenda = ({ appointments, loading, onNewAppointment }) => {
     });
   }, [currentDate, appointments]);
 
-  const displayedAppointments = useMemo(() => 
+  const periodLabel = useMemo(() => {
+    if (viewMode === 'mes') {
+      return currentDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+    }
+    const start = weekDays[0];
+    const end = weekDays[6];
+    const sameMonth = start.dateObj.getMonth() === end.dateObj.getMonth();
+    if (sameMonth) {
+      return `${start.dayNum} – ${end.dayNum} de ${start.dateObj.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}`;
+    }
+    return `${start.dayNum} ${start.dateObj.toLocaleDateString('pt-BR', { month: 'short' })} – ${end.dayNum} ${end.dateObj.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })}`;
+  }, [viewMode, currentDate, weekDays]);
+
+  const displayedAppointments = useMemo(() =>
     appointments.filter(app => app.date === selectedDateStr).sort((a,b) => a.time.localeCompare(b.time))
   , [appointments, selectedDateStr]);
 
@@ -65,6 +82,12 @@ const ViewAgenda = ({ appointments, loading, onNewAppointment }) => {
     }
     setCurrentDate(newDate);
   };
+
+  function goToToday() {
+    const today = new Date();
+    setCurrentDate(today);
+    setSelectedDate(today);
+  }
 
   if (loading) {
     return (
@@ -79,6 +102,9 @@ const ViewAgenda = ({ appointments, loading, onNewAppointment }) => {
       <header className="flex justify-between items-center shrink-0">
         <h2 className="text-3xl font-bold text-gray-800">Agenda de atendimentos</h2>
         <div className="flex items-center gap-4">
+          <button onClick={goToToday} className="px-4 py-2 text-sm font-bold text-[#8A2BE2] bg-purple-50 rounded-xl hover:bg-purple-100 transition-colors">
+            Hoje
+          </button>
           <div className="bg-[#EFEFEF] rounded-xl p-1 flex">
             <button 
               onClick={() => setViewMode('mes')} 
@@ -105,7 +131,7 @@ const ViewAgenda = ({ appointments, loading, onNewAppointment }) => {
           <div className="flex items-center justify-center gap-8 mb-8 shrink-0">
             <button onClick={() => changePeriod(-1)} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><ChevronLeft /></button>
             <h3 className="text-2xl font-bold text-gray-700 capitalize">
-              {currentDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+              {periodLabel}
             </h3>
             <button onClick={() => changePeriod(1)} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><ChevronRight /></button>
           </div>
@@ -133,7 +159,7 @@ const ViewAgenda = ({ appointments, loading, onNewAppointment }) => {
                           </span>
                           <div className="flex flex-wrap gap-1 mt-auto">
                             {day.appointments.map(a => (
-                              <div key={a.id} className={`w-2 h-2 rounded-full ${a.type === 'CIRURGIA' ? 'bg-red-500' : 'bg-blue-500'}`} title={a.patient} />
+                              <div key={a.id} className={`w-2 h-2 rounded-full ${(TYPE_STYLES[a.type] ?? TYPE_STYLES.EXAME).dot}`} title={a.patient} />
                             ))}
                           </div>
                         </>
@@ -157,9 +183,9 @@ const ViewAgenda = ({ appointments, loading, onNewAppointment }) => {
                     </div>
                     <div className="flex-1 p-2 space-y-2 overflow-y-auto bg-gray-50/30">
                       {day.appointments.map(app => (
-                        <div key={app.id} className={`p-2 rounded-lg border-l-4 shadow-sm text-[10px] bg-white border-${app.type === 'CIRURGIA' ? 'red' : 'blue'}-500`}>
+                        <div key={app.id} className={`p-2 rounded-lg border-l-4 shadow-sm text-[10px] bg-white ${(TYPE_STYLES[app.type] ?? TYPE_STYLES.EXAME).border}`}>
                            <div className="flex justify-between font-bold">
-                             <span className={app.type === 'CIRURGIA' ? 'text-red-600' : 'text-blue-600'}>{app.type}</span>
+                             <span className={(TYPE_STYLES[app.type] ?? TYPE_STYLES.EXAME).text}>{app.type}</span>
                              <span>{app.time}</span>
                            </div>
                            <div className="font-bold text-gray-800 text-[11px] mt-1">{app.patient}</div>

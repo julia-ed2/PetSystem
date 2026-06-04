@@ -12,6 +12,17 @@ export const petsService = {
     return apiCall(`/pets${query}`, { method: 'GET' });
   },
 
+  summary: async (filters = {}) => {
+    const queryParams = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        queryParams.append(key, value);
+      }
+    });
+    const query = queryParams.toString() ? `?${queryParams.toString()}` : '';
+    return apiCall(`/pets/summary${query}`, { method: 'GET' });
+  },
+
   getById: async (id) => {
     return apiCall(`/pets/${id}`, { method: 'GET' });
   },

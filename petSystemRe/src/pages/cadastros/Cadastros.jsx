@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import FiltroDropdown from "../../components/cadastros/Filtro";
 import AcoesDropdown from "../../components/cadastros/Acoes";
+import ModalConfirmarExclusao from "../../components/cadastros/ModalConfirmarExclusao";
 import { tutoresService } from "../../services/tutoresService";
 import { petsService } from "../../services/petsService";
 import { usuariosService } from "../../services/usuariosService";
@@ -13,6 +14,7 @@ export const TIPOS_ACESSO = {
 
 function mapTipoUsuario(tipo) {
   if (tipo === "admin") return TIPOS_ACESSO.ADMINISTRADOR;
+  if (tipo === "gerente") return "Gerente";
   return TIPOS_ACESSO.USUARIO;
 }
 
@@ -22,6 +24,8 @@ function badgeColor(tipo) {
       return "bg-purple-100 text-purple-700 border border-purple-200";
     case TIPOS_ACESSO.USUARIO:
       return "bg-blue-100 text-blue-700 border border-blue-200";
+    case "Gerente":
+      return "bg-orange-100 text-orange-700 border border-orange-200";
     default:
       return "bg-gray-100 text-gray-600 border border-gray-200";
   }
@@ -35,32 +39,9 @@ function SortLabel({ active, direction }) {
   );
 }
 
-function ModalConfirmarExclusao({ usuario, onConfirmar, onCancelar }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6">
-        <h3 className="text-lg font-bold text-gray-900 mb-2">Confirmar exclusão</h3>
-        <p className="text-sm text-gray-600 mb-6">
-          Tem certeza que deseja excluir <span className="font-semibold text-gray-800">{usuario.nome}</span>? Essa ação não pode ser desfeita.
-        </p>
-        <div className="flex gap-3">
-          <button onClick={onCancelar}
-            className="flex-1 border border-gray-300 text-gray-700 font-semibold rounded-xl py-2.5 hover:bg-gray-50 transition-colors text-sm">
-            Cancelar
-          </button>
-          <button onClick={onConfirmar}
-            className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl py-2.5 transition-colors text-sm">
-            Excluir
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 
 export default function Cadastros({
-  isAdmin = true,
+  isAdmin = false,
   onCadastrarCliente,
   onCadastrarUsuario,
   onVerPerfil,
@@ -230,26 +211,22 @@ export default function Cadastros({
     setUsuarioParaExcluir(usuario);
   }
 
-  function confirmarExclusao() {
+  async function confirmarExclusao() {
     if (!usuarioParaExcluir) return;
-
-    const deletarRegistro = async () => {
-      try {
-        if (usuarioParaExcluir.origem === "tutor") {
-          await tutoresService.delete(usuarioParaExcluir.backendId);
-        } else {
-          await usuariosService.delete(usuarioParaExcluir.backendId);
-        }
-
-        setUsuarios((prev) => prev.filter((u) => u.id !== usuarioParaExcluir.id));
-        setUsuarioParaExcluir(null);
-      } catch (err) {
-        console.error("Erro ao deletar registro:", err);
-        setError(err.message || "Erro ao deletar registro");
+    try {
+      setLoading(true);
+      if (usuarioParaExcluir.origem === "tutor") {
+        await tutoresService.delete(usuarioParaExcluir.backendId);
+      } else {
+        await usuariosService.delete(usuarioParaExcluir.backendId);
       }
-    };
-
-    deletarRegistro();
+      setUsuarios((prev) => prev.filter((u) => u.id !== usuarioParaExcluir.id));
+      setUsuarioParaExcluir(null);
+    } catch (err) {
+      setError(err.message || "Erro ao deletar registro");
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleAdicionarPet() {
@@ -299,7 +276,6 @@ export default function Cadastros({
       setTutorParaNovoPet(null);
       setNovoPet({ nome: "", especie: "Cachorro", raca: "", idade: 0, sexo: "M", peso: 0, observacoes: "" });
     } catch (err) {
-      console.error("Erro ao criar pet:", err);
       setError("Erro ao criar pet");
     } finally {
       setLoading(false);

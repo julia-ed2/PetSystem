@@ -1,9 +1,58 @@
 from flask import Blueprint, request, jsonify
-from models import db, Pet, Tutor
+from models import db, Pet, Tutor, MedicalRecord, Vaccine
 from auth import require_auth, require_role
+from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import joinedload
 
 pets_bp = Blueprint('pets', __name__)
+
+
+@pets_bp.route('/pets/summary', methods=['GET'])
+@require_auth
+def pets_summary(current_user):
+    try:
+        ativo = request.args.get('ativo', 'true').lower() == 'true'
+        pets = Pet.query.options(joinedload(Pet.tutor)).filter_by(ativo=ativo).order_by(Pet.nome.asc()).all()
+
+        # Aggregate queries: max date per pet — 2 queries instead of N
+        mr_dates = dict(
+            db.session.query(
+                MedicalRecord.id_pet,
+                func.max(MedicalRecord.data_abertura),
+            ).group_by(MedicalRecord.id_pet).all()
+        )
+        vac_dates = dict(
+            db.session.query(
+                Vaccine.id_pet,
+                func.max(Vaccine.data_aplicacao),
+            ).group_by(Vaccine.id_pet).all()
+        )
+
+        data = []
+        for p in pets:
+            candidates = [d for d in (mr_dates.get(p.id_pet), vac_dates.get(p.id_pet)) if d is not None]
+            last_visit = max(candidates).isoformat() if candidates else None
+            data.append({
+                'id': p.id_pet,
+                'nome': p.nome,
+                'especie': p.especie,
+                'raca': p.raca,
+                'tutor_id': p.id_tutor,
+                'tutor_nome': p.tutor.nome if p.tutor else None,
+                'idade': p.idade,
+                'sexo': p.sexo,
+                'ativo': p.ativo,
+                'last_visit': last_visit,
+            })
+
+        return jsonify({'success': True, 'count': len(data), 'data': data}), 200
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Erro ao obter resumo de pets: {str(e)}',
+            'code': 'INTERNAL_ERROR',
+        }), 500
 
 
 @pets_bp.route('/pets', methods=['GET'])
@@ -35,7 +84,7 @@ def list_pets(current_user):
         ativo = request.args.get('ativo', 'true').lower() == 'true'
         query = query.filter_by(ativo=ativo)
         
-        pets = query.all()
+        pets = query.options(joinedload(Pet.tutor)).all()
         
         return jsonify({
             'success': True,

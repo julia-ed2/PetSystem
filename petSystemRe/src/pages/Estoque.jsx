@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from '../hooks/useAuth';
 import { tutoresService } from '../services/tutoresService';
-import { cadastrarProduto, deletarProduto, listarProdutos, listarSaidas, registrarSaida } from '../services/estoqueService';
+import { cadastrarProduto, deletarProduto, listarProdutos, listarSaidas, registrarSaida, relancarProduto } from '../services/estoqueService';
 import ModalRegistrarSaida from "../components/estoque/ModalRegistrarSaida";
 import ModalNovoProduto from "../components/estoque/ModalNovoProduto";
+import ModalRelancarProduto from "../components/estoque/ModalRelancarProduto";
 
 
 export const CATEGORIAS = ["Ração", "Medicamento", "Higiene", "Acessório", "Outro"];
@@ -33,6 +34,7 @@ export default function Estoque({ canManage = true }) {
     const [tabAtiva, setTabAtiva] = useState("Todos");
     const [modalNovo, setModalNovo] = useState(false);
     const [modalSaida, setModalSaida] = useState(false);
+    const [modalRelancar, setModalRelancar] = useState(null); // produto selecionado ou null
     const podeEscrever = canManage && user?.tipo !== 'cliente';
     const [sortConfig, setSortConfig] = useState({ key: "nome", direction: "asc" });
 
@@ -66,8 +68,7 @@ export default function Estoque({ canManage = true }) {
     const totalItens = produtos.reduce((a, p) => a + p.quantidade, 0);
     // valor em estoque = soma de (qtd * preço) de TODOS os produtos
     const valorEstoque = produtos.reduce((a, p) => a + p.quantidade * p.precoUnitario, 0);
-    const categoriasPresentes = [...new Set(produtos.map(p => p.categoria))];
-    const tabs = ["Todos", ...CATEGORIAS.filter(c => categoriasPresentes.includes(c))];
+    const tabs = ["Todos", ...CATEGORIAS];
 
     const produtosFiltrados = useMemo(() => {
         const t = busca.toLowerCase();
@@ -102,6 +103,18 @@ export default function Estoque({ canManage = true }) {
     }
 
     const podeRemover = user?.tipo === 'admin' || user?.tipo === 'gerente';
+
+    async function handleRelancar(id, dados) {
+        try {
+            const produtoAtualizado = await relancarProduto(id, dados);
+            setProdutos(prev => prev.map(p => p.id === id ? produtoAtualizado : p));
+            setHistorico(await listarSaidas());
+            setModalRelancar(null);
+        } catch (err) {
+            console.error("Erro ao relançar produto:", err);
+            throw err;
+        }
+    }
 
     async function handleDeletar(id) {
         if (!window.confirm('Remover produto do estoque?')) return;
@@ -207,7 +220,7 @@ export default function Estoque({ canManage = true }) {
                         <button type="button" onClick={() => handleSort("totalEstoque")} className="text-[11px] font-bold text-gray-700 uppercase tracking-wide w-[15%] flex items-center justify-end gap-1">
                             <span>Total Estoq.</span><SortLabel active={sortConfig.key === "totalEstoque"} direction={sortConfig.direction} />
                         </button>
-                        {podeRemover && <span className="w-[6%]" />}
+                        {podeEscrever && <span className="w-[8%]" />}
                     </div>
                     {loading ? (
                         <div className="flex items-center justify-center py-16">
@@ -229,14 +242,25 @@ export default function Estoque({ canManage = true }) {
                                 <span className="text-[14px] font-medium text-gray-800 w-[15%] text-right">
                                     {fmt(p.quantidade * p.precoUnitario)}
                                 </span>
-                                {podeRemover && (
-                                    <button onClick={() => handleDeletar(p.id)}
-                                        className="w-[6%] flex justify-end text-gray-300 hover:text-red-500 transition-colors"
-                                        title="Remover produto">
-                                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                                        </svg>
-                                    </button>
+                                {podeEscrever && (
+                                    <div className="w-[8%] flex justify-end items-center gap-1.5">
+                                        <button onClick={() => setModalRelancar(p)}
+                                            className="text-purple-400 hover:text-purple-600 transition-colors"
+                                            title="Relançar produto">
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m0 14v1m8-8h-1M5 12H4m15.07-6.07-.71.71M5.64 18.36l-.71.71M18.36 18.36l-.71-.71M5.64 5.64l-.71-.71M12 8a4 4 0 100 8 4 4 0 000-8z" />
+                                            </svg>
+                                        </button>
+                                        {podeRemover && (
+                                            <button onClick={() => handleDeletar(p.id)}
+                                                className="text-gray-300 hover:text-red-500 transition-colors"
+                                                title="Remover produto">
+                                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                                                </svg>
+                                            </button>
+                                        )}
+                                    </div>
                                 )}
                             </div>
                         ))
@@ -297,6 +321,13 @@ export default function Estoque({ canManage = true }) {
                     clientes={clientes}
                     onClose={() => setModalSaida(false)}
                     onSaida={handleSaida}
+                />
+            )}
+            {modalRelancar && podeEscrever && (
+                <ModalRelancarProduto
+                    produto={modalRelancar}
+                    onClose={() => setModalRelancar(null)}
+                    onRelancar={handleRelancar}
                 />
             )}
         </div>

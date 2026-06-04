@@ -55,12 +55,13 @@ export default function CadastrarCliente({ onVoltar, onSalvar, onVerProntuario }
         cpf: tutor.cpf,
         telefone: tutor.celular,
         endereco: formatarEndereco(),
+        ...(tutor.email && { login: tutor.email }),
       };
 
       const resTutor = await tutoresService.create(novoTutor);
       const tutoraId = resTutor.data.id;
 
-      for (const animal of animais) {
+      await Promise.all(animais.map((animal) => {
         const petPayload = {
           tutor_id: tutoraId,
           nome: animal.nome,
@@ -76,13 +77,12 @@ export default function CadastrarCliente({ onVoltar, onSalvar, onVerProntuario }
           petPayload.peso = peso;
         }
 
-        await petsService.create(petPayload);
-      }
+        return petsService.create(petPayload);
+      }));
 
       onSalvar?.({ tutor: resTutor.data, animais });
     } catch (err) {
       setError(err.message || "Erro ao salvar tutor");
-      console.error(err);
     } finally {
       setLoading(false);
     }

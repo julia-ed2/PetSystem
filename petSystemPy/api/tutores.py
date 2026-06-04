@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from models import db, Tutor, Pet
 from auth import require_auth, require_role
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import joinedload
 
 tutores_bp = Blueprint('tutores', __name__)
 
@@ -30,7 +31,7 @@ def list_tutores(current_user):
         ativo = request.args.get('ativo', 'true').lower() == 'true'
         query = query.filter_by(ativo=ativo)
         
-        tutores = query.all()
+        tutores = query.options(joinedload(Tutor.pets)).all()
         
         return jsonify({
             'success': True,

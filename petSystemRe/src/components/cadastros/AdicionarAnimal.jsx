@@ -1,10 +1,13 @@
 import { useState, useRef } from 'react';
 
+const ESPECIES = ["Cachorro", "Gato", "Coelho", "Pássaro", "Réptil", "Roedor", "Outros"];
+
 function ModalAdicionarAnimal({ onClose, onAdicionar }) {
   const [form, setForm] = useState({
-    nome: "", especie: "", raca: "", idade: "", sexo: "", observacoes: "", foto: null,
+    nome: "", especie: "", raca: "", idade: "", sexo: "", peso: "", observacoes: "", foto: null,
   });
   const [preview, setPreview] = useState(null);
+  const [error, setError] = useState("");
   const fileRef = useRef(null);
 
   function set(key, value) {
@@ -22,9 +25,10 @@ function ModalAdicionarAnimal({ onClose, onAdicionar }) {
 
   function handleAdicionar() {
     if (!form.nome || !form.especie || !form.raca || !form.idade || !form.sexo) {
-      alert("Preencha todos os campos obrigatórios.");
+      setError("Preencha todos os campos obrigatórios.");
       return;
     }
+    setError("");
     onAdicionar({ ...form, id: Date.now().toString(), preview });
   }
 
@@ -32,13 +36,17 @@ function ModalAdicionarAnimal({ onClose, onAdicionar }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 p-6 max-h-[92vh] overflow-y-auto">
 
-        {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-bold text-gray-900">Adicionar Animal</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-700 text-2xl leading-none">&times;</button>
         </div>
 
-        {/* Nome */}
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm">
+            {error}
+          </div>
+        )}
+
         <div className="mb-4">
           <label className="text-sm text-gray-700 mb-1 block">Nome do Animal (obrigatório):</label>
           <input
@@ -49,16 +57,17 @@ function ModalAdicionarAnimal({ onClose, onAdicionar }) {
           />
         </div>
 
-        {/* Espécie + Raça */}
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div>
             <label className="text-sm text-gray-700 mb-1 block">Espécie (obrigatório):</label>
-            <input
-              type="text"
+            <select
               value={form.especie}
               onChange={(e) => set("especie", e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
-            />
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 bg-white"
+            >
+              <option value="">Selecione</option>
+              {ESPECIES.map((e) => <option key={e} value={e}>{e}</option>)}
+            </select>
           </div>
           <div>
             <label className="text-sm text-gray-700 mb-1 block">Raça (obrigatório):</label>
@@ -71,14 +80,25 @@ function ModalAdicionarAnimal({ onClose, onAdicionar }) {
           </div>
         </div>
 
-        {/* Idade + Sexo */}
-        <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="grid grid-cols-3 gap-4 mb-4">
           <div>
             <label className="text-sm text-gray-700 mb-1 block">Idade (obrigatório):</label>
             <input
-              type="text"
+              type="number"
+              min="0"
               value={form.idade}
               onChange={(e) => set("idade", e.target.value)}
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
+            />
+          </div>
+          <div>
+            <label className="text-sm text-gray-700 mb-1 block">Peso (kg):</label>
+            <input
+              type="number"
+              min="0"
+              step="0.1"
+              value={form.peso}
+              onChange={(e) => set("peso", e.target.value)}
               className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
             />
           </div>
@@ -90,13 +110,12 @@ function ModalAdicionarAnimal({ onClose, onAdicionar }) {
               className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 bg-white"
             >
               <option value="">Selecione</option>
-              <option value="Macho">Macho</option>
-              <option value="Fêmea">Fêmea</option>
+              <option value="M">Macho</option>
+              <option value="F">Fêmea</option>
             </select>
           </div>
         </div>
 
-        {/* Observações */}
         <div className="mb-4">
           <label className="text-sm text-gray-700 mb-1 block">Observações (opcional):</label>
           <textarea
@@ -107,7 +126,6 @@ function ModalAdicionarAnimal({ onClose, onAdicionar }) {
           />
         </div>
 
-        {/* Foto */}
         <div className="mb-6">
           <label className="text-sm text-gray-700 mb-1 block">Foto do Animal (opcional):</label>
           <button
@@ -129,7 +147,6 @@ function ModalAdicionarAnimal({ onClose, onAdicionar }) {
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFoto} />
         </div>
 
-        {/* Botões */}
         <div className="flex gap-3">
           <button
             onClick={onClose}

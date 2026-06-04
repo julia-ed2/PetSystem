@@ -15,7 +15,7 @@ def verify_password(senha_hash, senha):
     """Verify password against hash"""
     try:
         return check_password_hash(senha_hash, senha)
-    except:
+    except Exception:
         return False
 
 
@@ -32,10 +32,9 @@ def get_current_user():
     """Get currently authenticated user from JWT token"""
     try:
         usuario_id_str = get_jwt_identity()
-        # Convert back from string to int
         usuario_id = int(usuario_id_str)
         return User.query.get(usuario_id)
-    except:
+    except Exception:
         return None
 
 

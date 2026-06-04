@@ -67,6 +67,14 @@ export async function deletarProduto(id) {
   });
 }
 
+export async function relancarProduto(id, dados) {
+  const response = await apiCall(`/produtos/${id}/relancar`, {
+    method: 'POST',
+    body: JSON.stringify(dados),
+  });
+  return normalizeProduto(response.data.produto);
+}
+
 export async function registrarSaida(itens, cliente = null) {
   const response = await apiCall('/movimentacoes-estoque', {
     method: 'POST',

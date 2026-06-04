@@ -1,4 +1,5 @@
-// ─── Modal: Editar Pet (somente admins) ───────────────────────────────────────
+import { useState } from 'react';
+
 function ModalEditarPet({ pet, tutor, onClose, onSave }) {
   const [form, setForm] = useState({ ...pet });
   const [formTutor, setFormTutor] = useState({ ...tutor });

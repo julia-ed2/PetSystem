@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { fmt } from '../../pages/Estoque';
 
 function ModalRegistrarSaida({ produtos, clientes, onClose, onSaida }) {
@@ -23,14 +23,15 @@ function ModalRegistrarSaida({ produtos, clientes, onClose, onSaida }) {
   );
 
   function handleAdicionar() {
-    if (!produtoSel || !quantidade) { alert("Selecione o produto e a quantidade."); return; }
+    if (!produtoSel || !quantidade) { setErro("Selecione o produto e a quantidade."); return; }
     const prod = produtos.find(p => p.id === produtoSel);
     const qty  = Number(quantidade);
-    if (qty <= 0) { alert("Quantidade inválida."); return; }
+    if (qty <= 0) { setErro("Quantidade inválida."); return; }
     const jaReservado = itens.find(i => i.produtoId === produtoSel)?.quantidade || 0;
     if (qty + jaReservado > prod.quantidade) {
-      alert(`Estoque insuficiente. Disponível: ${prod.quantidade - jaReservado}`); return;
+      setErro(`Estoque insuficiente. Disponível: ${prod.quantidade - jaReservado}`); return;
     }
+    setErro("");
 
     setItens(prev => {
       const ex = prev.find(i => i.produtoId === produtoSel);

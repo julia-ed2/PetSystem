@@ -2,9 +2,8 @@ import { useState } from 'react';
 
 // card de vizualização de agendamentos
 
-const AppointmentCard = ({ appointment, type, time, patient, procedure, doctor, colorClass }) => {
-  const item = appointment || { type, time, patient, procedure, doctor, colorClass };
-  const itemColorClass = item.colorClass || (item.type === 'CIRURGIA' ? 'border-red-500' : 'border-blue-500');
+const AppointmentCard = ({ type, time, patient, procedure, doctor, colorClass }) => {
+  const itemColorClass = colorClass || (type === 'CIRURGIA' ? 'border-red-500' : 'border-blue-500');
   const [notified, setNotified] = useState(false);
 
   return (

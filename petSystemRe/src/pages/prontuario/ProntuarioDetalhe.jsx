@@ -2,16 +2,11 @@ import { useEffect, useState } from "react";
 import { useNavigate } from 'react-router-dom';
 import HistoricoCard from "../../components/prontuario/HistoricoCard";
 import NovoRegistro from "../../components/prontuario/NovoRegistro";
+import ProntuarioPrint from "../../components/prontuario/ProntuarioPrint";
 import { petsService } from "../../services/petsService";
 import { tutoresService } from "../../services/tutoresService";
+import { useAuth } from "../../hooks/useAuth";
 
-
-const TIPO_COLOR = {
-    Vacinação: "text-purple-600",
-    Cirurgia: "text-purple-600",
-    Consulta: "text-purple-600",
-    Exame: "text-purple-600",
-};
 
 const FILTROS = ["Todos", "Consultas", "Vacinas", "Cirurgias", "Exames"];
 
@@ -36,9 +31,10 @@ const TIPO_MAP = {
  */
 
 
-// isAdm esta true para testes  
-export default function ProntuarioDetalhe({ prontuarioId, isAdmin = true, onVoltar }) {
+export default function ProntuarioDetalhe({ prontuarioId, onVoltar }) {
     const navigate = useNavigate();
+    const { user } = useAuth();
+    const isAdmin = user?.nivel_acesso === 'admin' || user?.nivel_acesso === 'gerente';
     const [dados, setDados] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -125,22 +121,7 @@ export default function ProntuarioDetalhe({ prontuarioId, isAdmin = true, onVolt
         carregarDados();
     }, [prontuarioId]);
 
-    // BACKEND PRONTO (tirar do comentario):
-    /*
-       useEffect(() => {
-         if (!prontuarioId) return;
-         setLoading(true);
-         fetch(`/api/prontuarios/${prontuarioId}`)
-           .then((r) => r.json())
-           .then((data) => setDados(data))
-           .catch((err) => console.error('Erro ao buscar prontuário:', err))
-           .finally(() => setLoading(false));
-       }, [prontuarioId]);
-    
-       dados via prontuarioId
-      */
-
-    // Filtro 
+    // Filtro
     const historicFiltrado = (dados?.historico || []).filter((item) => {
         const tipo = TIPO_MAP[filtroAtivo];
         return tipo === null || item.tipo === tipo;
@@ -193,11 +174,11 @@ export default function ProntuarioDetalhe({ prontuarioId, isAdmin = true, onVolt
         );
     }
 
-    const { pet, tutor, historico } = dados;
+    const { pet, tutor } = dados;
 
     return (
         <div className="flex-1 min-h-screen bg-gray-50 flex flex-col">
-            <div className="flex-1 px-8 py-6 max-w-4xl w-full mx-auto">
+            <div className="screen-only flex-1 px-8 py-6 max-w-4xl w-full mx-auto">
 
                 {/* voltar */}
                 <button
@@ -304,8 +285,10 @@ export default function ProntuarioDetalhe({ prontuarioId, isAdmin = true, onVolt
                 </div>
             </div>
 
-            {/* imprimir - atualmente esta tirando print da tela, depois tem que mudar */}
-            <div className="sticky bottom-0 bg-gray-50 border-t border-gray-100 px-8 py-4 flex justify-end">
+            <ProntuarioPrint dados={dados} />
+
+            {/* imprimir */}
+            <div className="no-print sticky bottom-0 bg-gray-50 border-t border-gray-100 px-8 py-4 flex justify-end">
                 <button
                     onClick={handleImprimir}
                     className="bg-purple-700 hover:bg-purple-800 text-white font-semibold px-8 py-3 rounded-2xl transition-colors shadow-md"

@@ -149,7 +149,8 @@ def get_current_user_info(current_user):
 
 
 @auth_bp.route('/register', methods=['POST'])
-def register():
+@require_role('admin')
+def register(current_user):
     """
     Register new user.
     Expects JSON: { "nome": "...", "login": "...", "password": "..." }

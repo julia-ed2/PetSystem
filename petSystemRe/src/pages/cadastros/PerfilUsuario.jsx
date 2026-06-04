@@ -103,6 +103,7 @@ export default function PerfilUsuario({
   const [petEditando, setPetEditando] = useState(null);
   const [petDeletando, setPetDeletando] = useState(null);
   const [modalAberta, setModalAberta] = useState(false);
+  const [editPetForm, setEditPetForm] = useState({});
 
   useEffect(() => {
     const carregarTutor = async () => {
@@ -138,6 +139,8 @@ export default function PerfilUsuario({
             raca: pet.raca || "",
             sexo: pet.sexo || "",
             idade: pet.idade ? `${pet.idade} anos` : "",
+            idade_anos: pet.idade || 0,
+            peso: pet.peso || 0,
             observacoes: pet.observacoes || "",
             foto: null,
           })),
@@ -385,6 +388,15 @@ export default function PerfilUsuario({
                     onVerProntuario={onVerProntuario}
                     onEditar={(pet) => {
                       setPetEditando(pet);
+                      setEditPetForm({
+                        nome: pet.nome,
+                        especie: pet.especie,
+                        raca: pet.raca,
+                        idade: pet.idade_anos || 0,
+                        sexo: pet.sexo || 'M',
+                        peso: pet.peso || 0,
+                        observacoes: pet.observacoes || '',
+                      });
                       setModalAberta(true);
                     }}
                     onDeletar={setPetDeletando}
@@ -401,10 +413,8 @@ export default function PerfilUsuario({
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6 max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-bold text-gray-900">Editar Pet</h2>
-              <button onClick={() => {
-                setModalAberta(false);
-                setPetEditando(null);
-              }} className="text-gray-400 hover:text-gray-700 text-2xl leading-none">×</button>
+              <button onClick={() => { setModalAberta(false); setPetEditando(null); }}
+                className="text-gray-400 hover:text-gray-700 text-2xl leading-none">×</button>
             </div>
 
             <div className="space-y-4">
@@ -412,8 +422,8 @@ export default function PerfilUsuario({
                 <label className="text-sm font-semibold text-gray-700 block mb-1.5">Nome *</label>
                 <input
                   type="text"
-                  defaultValue={petEditando.nome}
-                  id="petNome"
+                  value={editPetForm.nome || ''}
+                  onChange={(e) => setEditPetForm(prev => ({ ...prev, nome: e.target.value }))}
                   placeholder="Ex: Mel"
                   className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 transition-all"
                 />
@@ -423,8 +433,8 @@ export default function PerfilUsuario({
                 <div>
                   <label className="text-sm font-semibold text-gray-700 block mb-1.5">Espécie *</label>
                   <select
-                    defaultValue={petEditando.especie}
-                    id="petEspecie"
+                    value={editPetForm.especie || ''}
+                    onChange={(e) => setEditPetForm(prev => ({ ...prev, especie: e.target.value }))}
                     className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 transition-all bg-white"
                   >
                     {["Cachorro", "Gato", "Coelho", "Pássaro", "Réptil", "Roedor", "Outros"].map((e) => (
@@ -437,8 +447,8 @@ export default function PerfilUsuario({
                   <label className="text-sm font-semibold text-gray-700 block mb-1.5">Raça *</label>
                   <input
                     type="text"
-                    defaultValue={petEditando.raca}
-                    id="petRaca"
+                    value={editPetForm.raca || ''}
+                    onChange={(e) => setEditPetForm(prev => ({ ...prev, raca: e.target.value }))}
                     placeholder="Ex: Shih Tzu"
                     className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 transition-all"
                   />
@@ -450,8 +460,8 @@ export default function PerfilUsuario({
                   <label className="text-sm font-semibold text-gray-700 block mb-1.5">Idade (anos)</label>
                   <input
                     type="number"
-                    defaultValue={petEditando.idade_anos || 0}
-                    id="petIdade"
+                    value={editPetForm.idade ?? 0}
+                    onChange={(e) => setEditPetForm(prev => ({ ...prev, idade: e.target.value }))}
                     min="0"
                     className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 transition-all"
                   />
@@ -460,8 +470,8 @@ export default function PerfilUsuario({
                 <div>
                   <label className="text-sm font-semibold text-gray-700 block mb-1.5">Sexo</label>
                   <select
-                    defaultValue={petEditando.sexo === "Macho" ? "M" : petEditando.sexo === "Fêmea" ? "F" : "M"}
-                    id="petSexo"
+                    value={editPetForm.sexo || 'M'}
+                    onChange={(e) => setEditPetForm(prev => ({ ...prev, sexo: e.target.value }))}
                     className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 transition-all bg-white"
                   >
                     <option value="M">Macho</option>
@@ -474,8 +484,8 @@ export default function PerfilUsuario({
                 <label className="text-sm font-semibold text-gray-700 block mb-1.5">Peso (kg)</label>
                 <input
                   type="number"
-                  defaultValue={petEditando.peso || 0}
-                  id="petPeso"
+                  value={editPetForm.peso ?? 0}
+                  onChange={(e) => setEditPetForm(prev => ({ ...prev, peso: e.target.value }))}
                   min="0"
                   step="0.1"
                   className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 transition-all"
@@ -485,8 +495,8 @@ export default function PerfilUsuario({
               <div>
                 <label className="text-sm font-semibold text-gray-700 block mb-1.5">Observações</label>
                 <textarea
-                  defaultValue={petEditando.observacoes || ""}
-                  id="petObservacoes"
+                  value={editPetForm.observacoes || ''}
+                  onChange={(e) => setEditPetForm(prev => ({ ...prev, observacoes: e.target.value }))}
                   placeholder="Notas sobre o pet..."
                   rows={3}
                   className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 transition-all resize-none"
@@ -496,42 +506,31 @@ export default function PerfilUsuario({
 
             <div className="flex gap-3 mt-6">
               <button
-                onClick={() => {
-                  setModalAberta(false);
-                  setPetEditando(null);
-                }}
+                onClick={() => { setModalAberta(false); setPetEditando(null); }}
                 className="flex-1 border border-gray-300 text-gray-700 font-semibold rounded-xl py-2.5 hover:bg-gray-50 transition-colors text-sm"
               >
                 Cancelar
               </button>
               <button
                 onClick={() => {
-                  const nome = document.getElementById("petNome").value;
-                  const especie = document.getElementById("petEspecie").value;
-                  const raca = document.getElementById("petRaca").value;
-                  const idade = parseInt(document.getElementById("petIdade").value) || 0;
-                  const sexo = document.getElementById("petSexo").value;
-                  const peso = parseFloat(document.getElementById("petPeso").value) || 0;
-                  const observacoes = document.getElementById("petObservacoes").value;
-
-                  if (!nome || !especie || !raca) {
+                  if (!editPetForm.nome || !editPetForm.especie || !editPetForm.raca) {
                     alert("Nome, espécie e raça são obrigatórios");
                     return;
                   }
-
                   handleSalvarPet({
-                    nome,
-                    especie,
-                    raca,
-                    idade,
-                    sexo,
-                    peso,
-                    observacoes,
+                    nome: editPetForm.nome,
+                    especie: editPetForm.especie,
+                    raca: editPetForm.raca,
+                    idade: parseInt(editPetForm.idade) || 0,
+                    sexo: editPetForm.sexo,
+                    peso: parseFloat(editPetForm.peso) || 0,
+                    observacoes: editPetForm.observacoes,
                   });
                 }}
-                className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl py-2.5 transition-colors text-sm"
+                disabled={loading}
+                className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl py-2.5 transition-colors text-sm disabled:opacity-50"
               >
-                Atualizar
+                {loading ? "Salvando..." : "Atualizar"}
               </button>
             </div>
           </div>

@@ -29,6 +29,8 @@ export default function NovoRegistro({ onClose, onSave }) {
   const [tipoExame, setTipoExame] = useState("");
   const [laudo, setLaudo] = useState("");
 
+  const [error, setError] = useState("");
+
   const labelSalvar = {
     Consultas: "Salvar Consulta",
     Vacinas: "Salvar Vacina",
@@ -37,7 +39,27 @@ export default function NovoRegistro({ onClose, onSave }) {
   }[abaAtiva];
 
   function handleSalvar() {
-    // Monta o objeto de acordo com a aba
+    if (!dataHora || !veterinario) {
+      setError("Data e veterinário são obrigatórios.");
+      return;
+    }
+    if (abaAtiva === "Consultas" && !motivoConsulta) {
+      setError("Informe o motivo da consulta.");
+      return;
+    }
+    if (abaAtiva === "Vacinas" && !nomeVacina) {
+      setError("Informe o nome da vacina.");
+      return;
+    }
+    if (abaAtiva === "Cirurgias" && !tipoCirurgia) {
+      setError("Informe o tipo de cirurgia.");
+      return;
+    }
+    if (abaAtiva === "Exames" && !tipoExame) {
+      setError("Informe o tipo de exame.");
+      return;
+    }
+    setError("");
     const base = { dataHora, veterinario };
     let novoRegistro = {};
     if (abaAtiva === "Consultas") {
@@ -190,8 +212,14 @@ export default function NovoRegistro({ onClose, onSave }) {
           </>
         )}
 
+        {error && (
+          <div className="mt-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm">
+            {error}
+          </div>
+        )}
+
         {/* Rodapé */}
-        <div className="flex gap-3 mt-6">
+        <div className="flex gap-3 mt-4">
           <button onClick={onClose}
             className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl py-3 transition-colors">
             Cancelar

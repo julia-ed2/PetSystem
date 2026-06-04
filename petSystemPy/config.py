@@ -1,6 +1,11 @@
 import os
 from datetime import timedelta
 
+try:
+    from sqlalchemy.pool import StaticPool
+except ImportError:
+    StaticPool = None
+
 class Config:
     """Base configuration"""
     SQLALCHEMY_TRACK_MODIFICATIONS = False
@@ -56,6 +61,11 @@ class TestingConfig(Config):
     TESTING = True
     FLASK_ENV = 'testing'
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
+    # StaticPool: all connections share the same in-memory DB across threads/requests
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'connect_args': {'check_same_thread': False},
+        'poolclass': StaticPool,
+    }
 
 
 config = {

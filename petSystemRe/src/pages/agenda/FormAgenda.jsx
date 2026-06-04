@@ -28,8 +28,20 @@ const FormNewAppointment = ({ onCancel, onSubmit, onGoToAgenda }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!formData.type) {
+      setError('Selecione o tipo de atendimento.');
+      return;
+    }
     if (!formData.tutorId || !formData.petId || !formData.vetId) {
-      setError('Selecione tutor, pet e veterinario.');
+      setError('Selecione tutor, pet e veterinário.');
+      return;
+    }
+    if (!formData.date) {
+      setError('Selecione a data do agendamento.');
+      return;
+    }
+    if (!formData.time) {
+      setError('Selecione o horário do agendamento.');
       return;
     }
     setError('');
@@ -58,40 +70,22 @@ const FormNewAppointment = ({ onCancel, onSubmit, onGoToAgenda }) => {
     const carregar = async () => {
       try {
         setLoading(true);
-        if (!active) return;
-        const resTutores = await tutoresService.list();
+        const [resTutores, resVets] = await Promise.all([
+          tutoresService.list(),
+          veterinariosService.list(),
+        ]);
         if (!active) return;
         setTutores(resTutores.data || []);
+        setVeterinarios(resVets.data || []);
       } catch (err) {
         if (!active) return;
-        setError(err.message || 'Erro ao carregar tutores');
+        setError(err.message || 'Erro ao carregar dados do formulário');
       } finally {
         if (active) setLoading(false);
       }
     };
     carregar();
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    let active = true;
-    const carregarVeterinarios = async () => {
-      try {
-        const resVets = await veterinariosService.list();
-        if (!active) return;
-        setVeterinarios(resVets.data || []);
-      } catch (err) {
-        if (!active) return;
-        setError(err.message || 'Erro ao carregar veterinários');
-      }
-    };
-
-    carregarVeterinarios();
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, []);
 
   useEffect(() => {
@@ -207,8 +201,7 @@ const FormNewAppointment = ({ onCancel, onSubmit, onGoToAgenda }) => {
               name="tutorId"
               value={formData.tutorId}
               onChange={(e) => {
-                handleChange(e);
-                setFormData((prev) => ({ ...prev, petId: '' }));
+                setFormData((prev) => ({ ...prev, tutorId: e.target.value, petId: '' }));
               }}
               className={`${inputClass} mt-3`}
               disabled={loading}

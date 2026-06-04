@@ -172,8 +172,8 @@ petSystemRe/
 | Prontuários | `/dashboard/prontuarios` | ✅ | Autenticado |
 | Agenda | `/dashboard/agenda` | ✅ | Autenticado |
 | Vacinação | `/dashboard/vacinacao` | ✅ | Autenticado |
-| Estoque | `/dashboard/estoque` | ⏳ | Autenticado |
-| Financeiro | `/dashboard/financeiro` | ⏳ | Autenticado |
+| Estoque | `/dashboard/estoque` | ✅ | Autenticado |
+| Financeiro | `/dashboard/financeiro` | ✅ | Autenticado |
 
 ---
 

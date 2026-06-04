@@ -1,1 +1,29 @@
 @import "tailwindcss";
+
+/* ── Utilitários de impressão ──────────────────────────── */
+.print-only { display: none; }
+
+@media print {
+  /* Oculta elementos de navegação e interação */
+  aside,
+  .no-print { display: none !important; }
+
+  /* Garante que o conteúdo se expanda para a página inteira */
+  body, html { background: white !important; }
+  main { overflow: visible !important; }
+
+  /* Força renderização de cores de fundo (para os badges coloridos) */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Exibe apenas o layout de impressão */
+  .print-only {
+    display: block !important;
+    padding: 16px 24px;
+  }
+
+  /* Oculta o conteúdo de tela quando imprimindo */
+  .screen-only { display: none !important; }
+}

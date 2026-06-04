@@ -169,7 +169,7 @@ export default function CadastrarUsuario({ onVoltar, onSalvar }) {
               value={form.senha}
               onChange={(v) => set("senha", v)}
               type="password"
-              placeholder="Mínimo 8 caracteres"
+              placeholder="Mínimo 6 caracteres"
             />
             <Campo
               label="Confirmar senha (obrigatório):"

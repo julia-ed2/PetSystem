@@ -26,10 +26,10 @@ function HistoricoCard({ item }) {
               </svg>
               {item.veterinario}
             </p>
-            {(item.observacoes !== undefined) && (
+            {item.observacoes && (
               <div className="mt-2">
                 <p className="text-gray-700 text-xs font-semibold">Observações:</p>
-                {item.observacoes && <p className="text-gray-500 text-xs mt-0.5">{item.observacoes}</p>}
+                <p className="text-gray-500 text-xs mt-0.5">{item.observacoes}</p>
               </div>
             )}
             {item.arquivo && (

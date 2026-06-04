@@ -12,7 +12,9 @@ from models import (
     LancamentoFinanceiro,
     User,
     Tutor,
+    Pet,
 )
+from sqlalchemy.orm import joinedload
 
 
 estoque_bp = Blueprint('estoque', __name__)
@@ -202,11 +204,33 @@ def atualizar_produto(current_user, produto_id):
             return jsonify({'success': False, 'error': 'Produto não encontrado', 'code': 'NOT_FOUND'}), 404
 
         dados = request.get_json() or {}
+
+        if 'nome' in dados:
+            nome = (dados['nome'] or '').strip()
+            if not nome:
+                return jsonify({'success': False, 'error': 'Nome não pode ser vazio', 'code': 'INVALID_VALUE'}), 400
+            produto.nome = nome
+        if 'marca' in dados:
+            produto.marca = (dados['marca'] or '').strip() or None
+        if 'categoria' in dados:
+            produto.categoria = (dados['categoria'] or 'Outro').strip() or 'Outro'
+        if 'descricao' in dados:
+            produto.descricao = (dados['descricao'] or '').strip() or None
+        if 'estoque_minimo' in dados:
+            produto.estoque_minimo = max(0, int(dados['estoque_minimo'] or 0))
+        if 'precoUnitario' in dados or 'valor_unitario' in dados:
+            novo_preco = _parse_decimal(dados.get('precoUnitario') or dados.get('valor_unitario'), None)
+            if novo_preco is None or novo_preco < 0:
+                return jsonify({'success': False, 'error': 'Preço inválido', 'code': 'INVALID_VALUE'}), 400
+            produto.valor_unitario = novo_preco
         if 'ativo' in dados:
             produto.ativo = bool(dados['ativo'])
 
         db.session.commit()
         return jsonify({'success': True, 'data': _produto_payload(produto)}), 200
+    except (ValueError, TypeError):
+        db.session.rollback()
+        return jsonify({'success': False, 'error': 'Dados numéricos inválidos', 'code': 'INVALID_VALUE'}), 400
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e), 'code': 'INTERNAL_ERROR'}), 500
@@ -294,7 +318,7 @@ def registrar_movimentacao(current_user):
                 tipo_movimentacao='saida',
                 quantidade=quantidade,
                 data_hora=datetime.utcnow(),
-                observacoes=dados.get('observacoes') or f'Saída para {cliente.nome}' if cliente else 'Saída de estoque',
+                observacoes=dados.get('observacoes') or (f'Saída para {cliente.nome}' if cliente else 'Saída de estoque'),
             )
             db.session.add(movimentacao)
             db.session.flush()
@@ -341,6 +365,88 @@ def registrar_movimentacao(current_user):
         }), 500
 
 
+@estoque_bp.route('/produtos/<int:produto_id>/relancar', methods=['POST'])
+@require_role('admin', 'atendente', 'gerente')
+def relancar_produto(current_user, produto_id):
+    try:
+        dados = request.get_json() or {}
+        quantidade = int(dados.get('quantidade') or 0)
+        novo_preco = _parse_decimal(dados.get('precoUnitario') or dados.get('valor_unitario'), None)
+        observacoes = (dados.get('observacoes') or '').strip() or None
+
+        if quantidade <= 0:
+            return jsonify({
+                'success': False,
+                'error': 'Quantidade deve ser maior que zero',
+                'code': 'INVALID_VALUE',
+            }), 400
+
+        produto = Produto.query.get(produto_id)
+        if not produto:
+            return jsonify({
+                'success': False,
+                'error': 'Produto não encontrado',
+                'code': 'NOT_FOUND',
+            }), 404
+
+        if not produto.ativo:
+            return jsonify({
+                'success': False,
+                'error': 'Produto inativo não pode ser relançado',
+                'code': 'PRODUTO_INATIVO',
+            }), 400
+
+        if novo_preco is not None and novo_preco > 0:
+            produto.valor_unitario = novo_preco
+
+        produto.quantidade_estoque = int(produto.quantidade_estoque or 0) + quantidade
+
+        movimentacao = MovimentacaoEstoque(
+            id_produto=produto.id,
+            id_usuario=current_user.id_usuario,
+            tipo_movimentacao='entrada',
+            quantidade=quantidade,
+            data_hora=datetime.utcnow(),
+            observacoes=observacoes or 'Relançamento de estoque',
+        )
+        db.session.add(movimentacao)
+        db.session.flush()
+
+        _criar_lancamento_financeiro(
+            tipo='despesa',
+            categoria='Insumo',
+            descricao=f'Relançamento de estoque - {produto.nome}',
+            valor=quantidade * float(produto.valor_unitario),
+            status='Pago',
+            forma_pagamento='pix',
+        )
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Produto relançado com sucesso',
+            'data': {
+                'produto': _produto_payload(produto),
+                'movimentacao': movimentacao.to_dict(),
+            },
+        }), 201
+    except (ValueError, TypeError):
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': 'Dados numéricos inválidos',
+            'code': 'INVALID_VALUE',
+        }), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': f'Erro ao relançar produto: {str(e)}',
+            'code': 'INTERNAL_ERROR',
+        }), 500
+
+
 @estoque_bp.route('/lancamentos-financeiros', methods=['GET'])
 @require_auth
 def listar_lancamentos(current_user):
@@ -364,7 +470,10 @@ def listar_lancamentos(current_user):
             except Exception:
                 pass
 
-        lancamentos = query.order_by(LancamentoFinanceiro.data_lancamento.desc(), LancamentoFinanceiro.id_lancamento.desc()).all()
+        lancamentos = query.options(
+            joinedload(LancamentoFinanceiro.pet),
+            joinedload(LancamentoFinanceiro.tutor),
+        ).order_by(LancamentoFinanceiro.data_lancamento.desc(), LancamentoFinanceiro.id_lancamento.desc()).all()
         return jsonify({
             'success': True,
             'data': [_lancamento_payload(lancamento) for lancamento in lancamentos],
@@ -406,6 +515,14 @@ def criar_lancamento(current_user):
                 'code': 'INVALID_VALUE',
             }), 400
 
+        _VALID_TIPOS = {'receita', 'despesa', 'devolucao'}
+        if tipo not in _VALID_TIPOS:
+            return jsonify({
+                'success': False,
+                'error': f'Tipo inválido. Use: {", ".join(sorted(_VALID_TIPOS))}',
+                'code': 'INVALID_VALUE',
+            }), 400
+
         lancamento = LancamentoFinanceiro(
             id_pet=dados.get('pet_id'),
             id_tutor=dados.get('tutor_id'),
@@ -443,11 +560,18 @@ def atualizar_status_lancamento(lancamento_id, current_user):
     try:
         dados = request.get_json() or {}
         status = (dados.get('status') or '').strip()
+        _VALID_STATUS = {'Pago', 'Pendente', 'Cancelado'}
         if not status:
             return jsonify({
                 'success': False,
                 'error': 'Status é obrigatório',
                 'code': 'MISSING_REQUIRED_FIELD',
+            }), 400
+        if status not in _VALID_STATUS:
+            return jsonify({
+                'success': False,
+                'error': f'Status inválido. Use: {", ".join(sorted(_VALID_STATUS))}',
+                'code': 'INVALID_VALUE',
             }), 400
 
         lancamento = LancamentoFinanceiro.query.get(lancamento_id)

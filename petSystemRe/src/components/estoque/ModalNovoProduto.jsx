@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { CATEGORIAS } from '../../pages/Estoque';
 import Campo from '../cadastros/CampoForm';
 

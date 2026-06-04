@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from models import db, Appointment, Pet, Veterinario
 from auth import require_auth, require_role
-from datetime import datetime, date
+from datetime import datetime, date, time as dt_time
 from sqlalchemy.exc import IntegrityError
 
 agendamentos_bp = Blueprint('agendamentos', __name__)
@@ -38,15 +38,15 @@ def list_agendamentos(current_user):
             try:
                 data_inicio = datetime.fromisoformat(data_inicio).date()
                 query = query.filter(Appointment.data >= data_inicio)
-            except:
+            except (ValueError, TypeError):
                 pass
-        
+
         data_fim = request.args.get('data_fim')
         if data_fim:
             try:
                 data_fim = datetime.fromisoformat(data_fim).date()
                 query = query.filter(Appointment.data <= data_fim)
-            except:
+            except (ValueError, TypeError):
                 pass
         
         agendamentos = query.all()
@@ -161,8 +161,8 @@ def create_agendamento(current_user):
         # Parse date and time
         try:
             data_agendamento = datetime.fromisoformat(dados['data']).date()
-            hora_agendamento = datetime.fromisoformat(dados['hora']).time()
-        except:
+            hora_agendamento = dt_time.fromisoformat(dados['hora'])
+        except (ValueError, TypeError):
             return jsonify({
                 'success': False,
                 'error': 'Formato de data/hora inválido. Use ISO 8601',
@@ -251,8 +251,8 @@ def update_agendamento(agendamento_id, current_user):
         
         if 'hora' in dados:
             try:
-                agendamento.hora = datetime.fromisoformat(dados['hora']).time()
-            except:
+                agendamento.hora = dt_time.fromisoformat(dados['hora'])
+            except (ValueError, TypeError):
                 return jsonify({
                     'success': False,
                     'error': 'Formato de hora inválido',

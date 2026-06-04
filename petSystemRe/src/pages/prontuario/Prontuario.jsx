@@ -21,35 +21,17 @@ const ViewProntuarios = ({ onOpenRecord }) => {
       try {
         setLoading(true);
         setError('');
-        const resPets = await petsService.list();
-        const pets = resPets.data || [];
-
-        const recordsByPet = await Promise.allSettled(
-          pets.map((pet) => petsService.getRecords(pet.id))
-        );
-
-        const mapped = pets.map((pet, index) => {
-          const resRecords = recordsByPet[index];
-          const items = resRecords.status === 'fulfilled' ? (resRecords.value.data || []) : [];
-          const lastDate = items
-            .map((item) => item.data || item.date)
-            .filter(Boolean)
-            .sort()
-            .pop();
-
-          return {
-            id: pet.id,
-            animalName: pet.nome,
-            species: pet.especie,
-            breed: pet.raca || 'SRD',
-            tutor: pet.tutor_nome || 'Tutor',
-            lastVisit: lastDate ? new Date(lastDate).toLocaleDateString('pt-BR') : '—',
-            status: pet.ativo ? 'Ativo' : 'Inativo',
-          };
-        });
-
+        const res = await petsService.summary();
         if (!active) return;
-        setRecords(mapped);
+        setRecords((res.data || []).map((pet) => ({
+          id: pet.id,
+          animalName: pet.nome,
+          species: pet.especie,
+          breed: pet.raca || 'SRD',
+          tutor: pet.tutor_nome || 'Tutor',
+          lastVisit: pet.last_visit ? new Date(pet.last_visit).toLocaleDateString('pt-BR') : '—',
+          status: pet.ativo ? 'Ativo' : 'Inativo',
+        })));
       } catch (err) {
         if (!active) return;
         setError(err.message || 'Erro ao carregar prontuarios');
@@ -57,11 +39,8 @@ const ViewProntuarios = ({ onOpenRecord }) => {
         if (active) setLoading(false);
       }
     };
-
     carregar();
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, []);
 
   const filteredRecords = useMemo(() => {
@@ -132,7 +111,7 @@ const ViewProntuarios = ({ onOpenRecord }) => {
                 <div>
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Espécie</p>
                   <div className="flex flex-wrap gap-2">
-                    {['Todos', 'Cachorro', 'Gato'].map(opt => (
+                    {['Todos', ...new Set(records.map(r => r.species))].map(opt => (
                       <button 
                         key={opt}
                         onClick={() => setFilterSpecies(opt)}

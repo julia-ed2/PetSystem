@@ -90,7 +90,7 @@ def _query_vacinas(pet_id):
     for vaccine, appointment, veterinario in rows:
         _add_history_item(
             items,
-            item_id=f'vacina-{vaccine.id_vacina}',
+            item_id=f'vacina-{vaccine.id_aplicacao_vacina}',
             tipo='Vacinação',
             date_value=vaccine.data_aplicacao,
             veterinarian=veterinario.nome if veterinario else (appointment.veterinario if appointment else None),
@@ -244,25 +244,29 @@ def criar_prontuario(pet_id, current_user):
             }), 404
         
         data = request.get_json()
-        
-        # Validar campos obrigatórios
-        required_fields = ['diagnosis', 'treatment']
-        for field in required_fields:
-            if field not in data or not data[field]:
-                return jsonify({
-                    'success': False,
-                    'error': f'Campo obrigatório faltando: {field}',
-                    'code': 'MISSING_REQUIRED_FIELD'
-                }), 400
-        
-        # Criar novo prontuário
-        new_record = MedicalRecord(
-            id_pet=pet_id,
-            data_consulta=datetime.now().date(),
-            diagnostico=data.get('diagnosis') or data.get('treatment') or data.get('notes') or '',
-        )
-        
-        db.session.add(new_record)
+
+        if not data or not (data.get('diagnosis') or data.get('treatment') or data.get('notes')):
+            return jsonify({
+                'success': False,
+                'error': 'Campo obrigatório faltando: diagnosis ou notes',
+                'code': 'MISSING_REQUIRED_FIELD'
+            }), 400
+
+        conteudo = data.get('diagnosis') or data.get('treatment') or data.get('notes') or ''
+
+        # Um pet tem um único prontuário (unique constraint); usa get-or-create
+        new_record = MedicalRecord.query.filter_by(id_pet=pet_id).first()
+        if new_record:
+            new_record.diagnostico = conteudo
+            new_record.data_consulta = datetime.now().date()
+        else:
+            new_record = MedicalRecord(
+                id_pet=pet_id,
+                data_consulta=datetime.now().date(),
+                diagnostico=conteudo,
+            )
+            db.session.add(new_record)
+
         db.session.commit()
         
         return jsonify({
@@ -306,22 +310,27 @@ def listar_vacinas(pet_id, current_user):
                 'code': 'PET_NOT_FOUND'
             }), 404
         
-        vaccines = Vaccine.query.filter_by(id_pet=pet_id).order_by(
+        rows = db.session.query(Vaccine, Appointment, Veterinario).outerjoin(
+            Appointment, Vaccine.id_atendimento == Appointment.id_agendamento
+        ).outerjoin(
+            Veterinario, Appointment.id_veterinario == Veterinario.id_veterinario
+        ).filter(
+            Vaccine.id_pet == pet_id
+        ).order_by(
             Vaccine.data_aplicacao.desc(),
             Vaccine.id_aplicacao_vacina.desc()
         ).all()
 
         resultados = []
-        for vaccine in vaccines:
-            appointment = Appointment.query.get(vaccine.id_atendimento) if vaccine.id_atendimento else None
+        for vaccine, appointment, veterinario in rows:
             resultados.append({
                 'id': vaccine.id,
                 'pet_id': vaccine.pet_id,
                 'vacina_id': vaccine.id_vacina,
                 'vacina_nome': vaccine.nome_vacina,
                 'data_aplicacao': vaccine.data_aplicacao.isoformat() if vaccine.data_aplicacao else None,
-                'veterinario_id': appointment.id_veterinario if appointment else None,
-                'veterinario_nome': appointment.veterinario if appointment else None,
+                'veterinario_id': veterinario.id_veterinario if veterinario else (appointment.id_veterinario if appointment else None),
+                'veterinario_nome': veterinario.nome if veterinario else (appointment.veterinario if appointment else None),
                 'next_dose_date': vaccine.proxima_dose.isoformat() if vaccine.proxima_dose else None,
                 'lote': vaccine.lote,
                 'observacoes': vaccine.observacao,

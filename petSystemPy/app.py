@@ -144,6 +144,7 @@ def create_app(config_name=None):
     except ImportError as e:
         print(f'⚠️  Warning: Could not import veterinarios blueprint: {e}')
 
+
     ensure_default_veterinarios(app)
     ensure_inventory_columns(app)
 
