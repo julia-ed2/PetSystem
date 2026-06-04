@@ -55,8 +55,23 @@ if [[ "$docker_ready" -ne 1 ]]; then
 fi
 
 # python/npm são necessários apenas no modo local (padrão). No modo --docker o compose cuida de tudo.
-require_command python3 "Instale o Python 3 antes de executar este projeto." 
+require_command python3 "Instale o Python 3 antes de executar este projeto."
 require_command npm "Instale o Node.js/npm antes de executar este projeto."
+
+# Verificar versão mínima do Python (3.10+)
+PY_VERSION=$(python3 -c "import sys; print(sys.version_info.minor)" 2>/dev/null || echo "0")
+PY_MAJOR=$(python3 -c "import sys; print(sys.version_info.major)" 2>/dev/null || echo "0")
+if [[ "$PY_MAJOR" -lt 3 ]] || [[ "$PY_MAJOR" -eq 3 && "$PY_VERSION" -lt 10 ]]; then
+	echo "[ERROR] Python 3.10+ é necessário. Versão atual: $(python3 --version 2>&1)"
+	exit 1
+fi
+
+# Verificar versão mínima do Node (20+)
+NODE_VERSION=$(node --version 2>/dev/null | sed 's/v//' | cut -d. -f1 || echo "0")
+if [[ "$NODE_VERSION" -lt 20 ]]; then
+	echo "[ERROR] Node.js 20+ é necessário. Versão atual: $(node --version 2>&1)"
+	exit 1
+fi
 
 if [[ ! -f "$ROOT_DIR/petSystemPy/.env" && -f "$ROOT_DIR/petSystemPy/.env.example" ]]; then
 	echo "[INFO] Copiando .env.example -> .env"

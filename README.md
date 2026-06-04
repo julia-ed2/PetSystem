@@ -1,10 +1,29 @@
-# 🐾 PetSystem - Frontend (React + Vite)
+# 🐾 PetSystem
 
-Sistema de gestão para clínicas veterinárias com interface moderna e intuitiva.
+Sistema de gestão para clínicas veterinárias — backend Flask + frontend React + MySQL via Docker.
+
+## 🚀 Rodar o sistema completo
+
+**Pré-requisitos:** Python 3.10+, Node.js 20+, Docker Desktop
+
+```bash
+./run.sh
+```
+
+O script cria o virtualenv, instala dependências, sobe o MySQL, inicializa o banco e inicia backend + frontend automaticamente.
+
+| Serviço   | URL                          |
+|-----------|------------------------------|
+| Frontend  | http://localhost:5173        |
+| Backend   | http://localhost:5000/api/health |
+
+Login padrão: `admin` / `admin123`
+
+> **Windows:** use WSL2 ou rode `./run.sh --docker` para subir tudo via Docker sem Python/Node locais.
 
 ---
 
-## 📑 Índice
+## 📑 Índice (documentação do frontend)
 
 1. [Instalação Rápida](#instalação-rápida)
 2. [Como Rodar](#como-rodar)
