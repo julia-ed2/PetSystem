@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "pet-system-app",
+    "slug": "pet-system-app",
+    "version": "1.0.0",
+    "sdkVersion": "54.0.0",
+    "platforms": [
+      "ios",
+      "android"
+    ],
+    "orientation": "portrait",
+    "jsEngine": "hermes",
+    "plugins": [
+      "expo-font"
+    ]
+  }
+}
