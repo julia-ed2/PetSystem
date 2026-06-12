@@ -120,7 +120,7 @@ export default function PerfilScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  safe:   { flex: 1, backgroundColor: COLORS.gray100 },
+  safe:   { flex: 1, backgroundColor: COLORS.gray100, paddingTop: 20 },
 
   header: {
     backgroundColor: COLORS.pink,

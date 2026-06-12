@@ -57,7 +57,7 @@ export default function MeusPetsScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  safe:    { flex: 1, backgroundColor: COLORS.gray100 },
+  safe:    { flex: 1, backgroundColor: COLORS.gray100, paddingTop: 20 },
   header:  { backgroundColor: COLORS.pink, flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12, paddingTop: 20 },
   backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
   titulo:  { color: COLORS.white, fontSize: 18, fontWeight: '700' },

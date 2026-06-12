@@ -1,17 +1,39 @@
 {
   "expo": {
-    "name": "pet-system-app",
+    "name": "PetSystem",
     "slug": "pet-system-app",
     "version": "1.0.0",
-    "sdkVersion": "54.0.0",
-    "platforms": [
-      "ios",
-      "android"
-    ],
     "orientation": "portrait",
-    "jsEngine": "hermes",
-    "plugins": [
-      "expo-font"
-    ]
+    "userInterfaceStyle": "light",
+
+    "icon": "./src/assets/logoVet (1).png",
+
+    "splash": {
+      "image": "./src/assets/logoVet (1).png",
+      "resizeMode": "cover",
+      "backgroundColor": "#7B2FBE"
+    },
+
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "br.com.petsystem.app"
+    },
+
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./src/assets/logoVet (1).jpeg",
+        "backgroundColor": "#7B2FBE"
+      },
+      "package": "br.com.petsystem.app"
+    },
+
+    "web": {
+      "favicon": "./src/assets/logoVet (1).jpeg"
+    },
+
+    "assetBundlePatterns": ["**/*"],
+    "sdkVersion": "54.0.0",
+    "platforms": ["ios", "android"],
+    "plugins": ["expo-font"]
   }
 }

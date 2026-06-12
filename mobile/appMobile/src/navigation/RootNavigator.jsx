@@ -4,7 +4,6 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import LoginScreen  from '../screens/LoginScreen';
 import TabNavigator from './TabNavigator';
 
-// Telas auxiliares — adicione as implementações conforme o projeto crescer
 import DadosPessoaisScreen from '../screens/DadosPessoaisScreen';
 import MeusPetsScreen      from '../screens/MeusPetsScreen';
 

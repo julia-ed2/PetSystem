@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, SafeAreaView, ScrollView, Alert,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/colors';
@@ -53,7 +54,12 @@ export default function DadosPessoaisScreen({ navigation }) {
         <Text style={styles.titulo}>Dados pessoais</Text>
       </View>
 
-      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 20}
+      >
+        <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <Campo label="Nome completo"  value={form.nome}     onChange={v => set('nome', v)} />
         <Campo label="Email"          value={form.email}    onChange={v => set('email', v)} keyboardType="email-address" />
         <Campo label="CPF"            value={form.cpf}      onChange={v => set('cpf', v)} editable={false} />
@@ -69,12 +75,13 @@ export default function DadosPessoaisScreen({ navigation }) {
 
         <View style={{ height: 32 }} />
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe:    { flex: 1, backgroundColor: COLORS.gray100 },
+  safe:    { flex: 1, backgroundColor: COLORS.gray100, paddingTop: 20 },
   header:  { backgroundColor: COLORS.pink, flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12, paddingTop: 20 },
   backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
   titulo:  { color: COLORS.white, fontSize: 18, fontWeight: '700' },

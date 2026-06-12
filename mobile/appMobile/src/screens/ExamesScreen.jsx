@@ -67,7 +67,7 @@ export default function ExamesScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  safe:    { flex: 1, backgroundColor: COLORS.pink },
+  safe:    { flex: 1, backgroundColor: COLORS.pink, paddingTop: 20 },
   scroll:  { flex: 1, backgroundColor: COLORS.gray100, paddingHorizontal: 16, paddingTop: 20 },
   titulo:  { fontSize: 16, fontWeight: '700', color: COLORS.black, marginBottom: 14 },
 

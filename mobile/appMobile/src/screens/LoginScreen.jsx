@@ -5,6 +5,8 @@ import {
 } from 'react-native';
 import { COLORS } from '../constants/colors';
 import { api } from '../service/api';
+import logoPet from '../assets/logoVet (1).jpeg';
+
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail]   = useState('');
@@ -34,7 +36,9 @@ export default function LoginScreen({ navigation }) {
           <View style={styles.logoContainer}>
             {/* Substitua por <Image source={require('../assets/logo.png')} style={styles.logo} /> */}
             <View style={styles.logoPlaceholder}>
-              <Text style={styles.logoEmoji}>🐾</Text>
+              
+              <Image source={require('../assets/logoVet (1).png')} className ='w-20 h-20' /> 
+          
             </View>
             <Text style={styles.logoText}>PetSystem</Text>
           </View>
@@ -83,7 +87,7 @@ export default function LoginScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: COLORS.gray100 },
+  safe: { flex: 1, backgroundColor: COLORS.gray100, paddingTop: 20 },
   container: {
     flexGrow: 1,
     justifyContent: 'center',
@@ -91,14 +95,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     paddingVertical: 48,
   },
-  logoContainer: { alignItems: 'center', marginBottom: 40 },
-  logoPlaceholder: {
-    width: 90, height: 90, borderRadius: 45,
-    backgroundColor: COLORS.purpleLight,
-    alignItems: 'center', justifyContent: 'center',
-    marginBottom: 12,
+  logoContainer: { alignItems: 'center', marginBottom: 40
   },
-  logoEmoji: { fontSize: 44 },
   logoText: { fontSize: 26, fontWeight: '800', color: COLORS.purple },
   card: { width: '100%' },
   titulo: { fontSize: 20, fontWeight: '800', color: COLORS.black, marginBottom: 24 },

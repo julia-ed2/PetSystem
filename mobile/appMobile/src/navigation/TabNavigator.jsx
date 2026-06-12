@@ -17,7 +17,7 @@ function TabIcon({ name, focused, label }) {
     return (
       <View style={styles.activeIconWrap}>
         <Ionicons name={name} size={20} color={COLORS.white} />
-        <Text style={{ color: COLORS.white, fontSize: 12, fontWeight: '700', marginTop: 2 }}>{label}</Text>
+        <Text style={{ color: COLORS.white, fontSize: 12, fontWeight: '700', marginTop: 2, padding: 2 }}>{label}</Text>
       </View>
     );
   }
@@ -102,10 +102,12 @@ const styles = StyleSheet.create({
   },
   activeIconWrap: {
     backgroundColor: COLORS.purple,
-    width: 52,
-    height: 36,
+    minWidth: 52,
+    minHeight: 36,
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
 });

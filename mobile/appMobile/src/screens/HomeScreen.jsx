@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, SafeAreaView, RefreshControl,
+  TextInput, Animated, KeyboardAvoidingView, Platform,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/colors';
@@ -17,9 +19,15 @@ export default function HomeScreen({ navigation, route }) {
   const [atendimento,   setAtendimento]   = useState(null);
   const [meta,          setMeta]          = useState(null);
   const [petHistorico,  setPetHistorico]  = useState([]);
-  const [petMeta,       setPetMeta]       = useState(null);
-  const [loading,       setLoading]       = useState(true);
-  const [refreshing,    setRefreshing]    = useState(false);
+  const [petMeta,           setPetMeta]           = useState(null);
+  const [editingMeta,       setEditingMeta]       = useState(false);
+  const [novoObjetivo,      setNovoObjetivo]      = useState('');
+  const [loading,           setLoading]           = useState(true);
+  const [refreshing,        setRefreshing]        = useState(false);
+  const [registeringPasseio, setRegisteringPasseio] = useState(false);
+  const [confirmModalVisible, setConfirmModalVisible] = useState(false);
+  const [newPasseioEntry,   setNewPasseioEntry]   = useState(null);
+  const iconScale = React.useRef(new Animated.Value(1)).current;
 
   async function carregar() {
     const [u, p, at, atu, m] = await Promise.all([
@@ -71,6 +79,54 @@ export default function HomeScreen({ navigation, route }) {
     return () => { mounted = false; };
   }, [petSel]);
 
+  const handleStartEditMeta = () => {
+    setNovoObjetivo(String(petMeta?.objetivo ?? ''));
+    setEditingMeta(true);
+  };
+
+  const handleCancelEditMeta = () => {
+    setEditingMeta(false);
+    setNovoObjetivo('');
+  };
+
+  const handleSaveMeta = async () => {
+    const objetivoNum = Number(novoObjetivo);
+    if (!objetivoNum || objetivoNum < 1) {
+      return;
+    }
+
+    const atualizado = await api.updateMetaPet(petSel.id, { objetivo: objetivoNum });
+    setPetMeta({
+      ...atualizado,
+      realizado: 0,
+    });
+    setEditingMeta(false);
+  };
+
+  const handleRegisterPasseio = async () => {
+    if (!petMeta || petMeta.realizado >= petMeta.objetivo || registeringPasseio) return;
+
+    setRegisteringPasseio(true);
+    try {
+      const response = await api.registerPasseio(petSel.id);
+      setPetMeta({ ...response.meta });
+      setPetHistorico(prev => [response.historico, ...prev]);
+      setNewPasseioEntry(response.historico);
+      setConfirmModalVisible(true);
+    } finally {
+      setRegisteringPasseio(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (petMeta?.realizado >= petMeta?.objetivo && petMeta?.objetivo > 0) {
+      Animated.sequence([
+        Animated.timing(iconScale, { toValue: 1.2, duration: 180, useNativeDriver: true }),
+        Animated.spring(iconScale, { toValue: 1, friction: 3, useNativeDriver: true }),
+      ]).start();
+    }
+  }, [petMeta?.realizado, petMeta?.objetivo, iconScale]);
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await carregar();
@@ -104,14 +160,42 @@ export default function HomeScreen({ navigation, route }) {
         />
       </View>
 
-      <ScrollView
-        style={styles.scroll}
-        showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.pink]} />}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 20}
       >
+        <Modal
+          visible={confirmModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setConfirmModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Passeio registrado!</Text>
+              <Text style={styles.modalDescription}>
+                {newPasseioEntry?.descricao || 'O passeio foi salvo no histórico do pet.'}
+              </Text>
+              <TouchableOpacity style={styles.modalButton} onPress={() => setConfirmModalVisible(false)}>
+                <Text style={styles.modalButtonText}>Fechar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+        <ScrollView
+          style={styles.scroll}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.pink]} />}
+        >
         {/* Banner atendimento em andamento */}
         {atendimento?.ativo && (
-          <TouchableOpacity style={styles.banner} activeOpacity={0.85}>
+          <TouchableOpacity
+            style={styles.banner}
+            activeOpacity={0.85}
+            onPress={() => navigation.navigate('Histórico')}
+          >
             <View>
               <Text style={styles.bannerLabel}>ATENDIMENTO EM ANDAMENTO:</Text>
               <Text style={styles.bannerDescricao}>{atendimento.descricao}</Text>
@@ -120,14 +204,6 @@ export default function HomeScreen({ navigation, route }) {
           </TouchableOpacity>
         )}
 
-        {/* Botão rosa grande: mostra apenas se o pet selecionado estiver em atendimento */}
-        {atendimento?.ativo && petSel?.id === atendimento.petId && (
-          <View style={styles.bigBtnWrap}>
-            <TouchableOpacity style={styles.bigBtn} onPress={() => navigation.navigate('Histórico')} activeOpacity={0.85}>
-              <Text style={styles.bigBtnText}>Ver histórico do atendimento</Text>
-            </TouchableOpacity>
-          </View>
-        )}
 
         {/* Atualizações recentes */}
         <View style={styles.section}>
@@ -158,31 +234,54 @@ export default function HomeScreen({ navigation, route }) {
         {petMeta && (
           <View style={styles.metaCard}>
             <View style={styles.metaTop}>
-              <View style={styles.metaIconWrap}>
-                <Text style={{ fontSize: 22 }}>🚶</Text>
-              </View>
+              <Animated.View style={[styles.metaIconWrap, { transform: [{ scale: iconScale }] }]}> 
+                <Ionicons name={petMeta.realizado >= petMeta.objetivo ? 'trophy' : 'paw'} size={22} color={COLORS.white} />
+              </Animated.View>
               <View style={{ flex: 1, marginLeft: 12 }}>
                 <Text style={styles.metaTitulo}>Meta de passeios — {petSel?.nome}</Text>
                 <Text style={styles.metaSubtitulo}>Objetivo: {petMeta.objetivo} {petMeta.unidade}</Text>
               </View>
-              <TouchableOpacity onPress={async () => {
-                const novo = await api.updateMetaPet(petSel.id, { objetivo: petMeta.objetivo });
-                setPetMeta(novo);
-              }}>
-                <Ionicons name="pencil" size={16} color={COLORS.pink} />
+              <TouchableOpacity onPress={handleStartEditMeta}>
+                <Ionicons name="pencil" size={18} color={COLORS.pink} />
               </TouchableOpacity>
             </View>
+            {editingMeta && (
+              <View style={styles.editMetaRow}>
+                <TextInput
+                  style={styles.editMetaInput}
+                  value={novoObjetivo}
+                  onChangeText={setNovoObjetivo}
+                  keyboardType="numeric"
+                  placeholder="Novo objetivo"
+                  placeholderTextColor={COLORS.gray400}
+                />
+                <View style={styles.editMetaButtons}>
+                  <TouchableOpacity style={styles.cancelMetaBtn} onPress={handleCancelEditMeta}>
+                    <Text style={styles.cancelMetaText}>Cancelar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.saveMetaBtn} onPress={handleSaveMeta}>
+                    <Text style={styles.saveMetaText}>Salvar</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
             {/* Barra de progresso por pet */}
             <View style={styles.progressBg}>
               <View style={[styles.progressFill, { width: `${Math.min((petMeta.realizado / petMeta.objetivo) * 100, 100)}%` }]} />
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
               <Text style={styles.metaContador}>{petMeta.realizado}/{petMeta.objetivo}</Text>
-              <TouchableOpacity style={styles.smallBtn} onPress={async () => {
-                const atualizado = await api.incrementPasseio(petSel.id);
-                setPetMeta(atualizado);
-              }}>
-                <Text style={styles.smallBtnText}>Registrar passeio</Text>
+              <TouchableOpacity
+                style={[
+                  styles.smallBtn,
+                  (petMeta.realizado >= petMeta.objetivo || registeringPasseio) && styles.smallBtnDisabled,
+                ]}
+                onPress={handleRegisterPasseio}
+                disabled={petMeta.realizado >= petMeta.objetivo || registeringPasseio}
+              >
+                <Text style={styles.smallBtnText}>
+                  {registeringPasseio ? 'Registrando...' : 'Registrar passeio'}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -190,12 +289,13 @@ export default function HomeScreen({ navigation, route }) {
 
         <View style={{ height: 24 }} />
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe:        { flex: 1, backgroundColor: COLORS.pinkBg },
+  safe:        { flex: 1, backgroundColor: COLORS.pinkBg, paddingTop: 20 },
   header:      { backgroundColor: COLORS.pinkBg, paddingBottom: 4 },
   headerTop:   { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 16 },
   logoCircle:  { width: 46, height: 46, borderRadius: 23, backgroundColor: COLORS.white, alignItems: 'center', justifyContent: 'center' },
@@ -249,6 +349,20 @@ const styles = StyleSheet.create({
   metaIconWrap:  { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.pinkLight, alignItems: 'center', justifyContent: 'center' },
   metaTitulo:    { fontSize: 14, fontWeight: '700', color: COLORS.black },
   metaSubtitulo: { fontSize: 12, color: COLORS.gray400, marginTop: 2 },
+  editMetaRow:   { marginBottom: 12 },
+  editMetaInput: { backgroundColor: COLORS.white, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1, borderColor: COLORS.gray200, color: COLORS.black, marginBottom: 10 },
+  editMetaButtons: { flexDirection: 'row', justifyContent: 'flex-end' },
+  cancelMetaBtn: { paddingVertical: 10, paddingHorizontal: 14, borderRadius: 12, backgroundColor: COLORS.gray100 },
+  saveMetaBtn:   { paddingVertical: 10, paddingHorizontal: 14, borderRadius: 12, backgroundColor: COLORS.purple, marginLeft: 8 },
+  cancelMetaText:{ color: COLORS.gray600, fontWeight: '700' },
+  saveMetaText:  { color: COLORS.white, fontWeight: '700' },
+  smallBtnDisabled: { backgroundColor: COLORS.gray200 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center' },
+  modalContent: { width: '84%', backgroundColor: COLORS.white, borderRadius: 18, padding: 20, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 12, elevation: 10 },
+  modalTitle: { fontSize: 18, fontWeight: '700', color: COLORS.black, marginBottom: 10 },
+  modalDescription: { fontSize: 14, color: COLORS.gray600, textAlign: 'center', marginBottom: 18 },
+  modalButton: { backgroundColor: COLORS.purple, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 24 },
+  modalButtonText: { color: COLORS.white, fontWeight: '700' },
   progressBg:    { height: 8, backgroundColor: COLORS.gray200, borderRadius: 99, overflow: 'hidden' },
   progressFill:  { height: '100%', backgroundColor: COLORS.pink, borderRadius: 99 },
   metaContador:  { fontSize: 12, color: COLORS.gray400, textAlign: 'right', marginTop: 6 },

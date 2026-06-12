@@ -125,4 +125,22 @@ export const api = {
     _metaPets[petId].realizado = (_metaPets[petId].realizado || 0) + 1;
     return { ..._metaPets[petId] };
   },
+  registerPasseio: async (petId) => {
+    await delay();
+    if (!_metaPets[petId]) _metaPets[petId] = { objetivo: 5, realizado: 0, unidade: 'por semana' };
+    _metaPets[petId].realizado = Math.min((_metaPets[petId].realizado || 0) + 1, _metaPets[petId].objetivo);
+    const pet = _pets.find(p => p.id === petId) || { nome: 'pet' };
+    const agora = new Date();
+    const novoHistorico = {
+      id: `h${Date.now()}`,
+      tipo: 'Passeio',
+      cor: 'purple',
+      hora: agora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      data: agora.toLocaleDateString('pt-BR'),
+      descricao: `Passeio registrado para ${pet.nome}.`,
+    };
+    if (!_historico[petId]) _historico[petId] = [];
+    _historico[petId] = [novoHistorico, ..._historico[petId]];
+    return { meta: { ..._metaPets[petId] }, historico: novoHistorico };
+  },
 };
