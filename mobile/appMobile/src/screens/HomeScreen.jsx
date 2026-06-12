@@ -3,7 +3,7 @@ import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, SafeAreaView, RefreshControl,
   TextInput, Animated, KeyboardAvoidingView, Platform,
-  Modal,
+  Modal, Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/colors';
@@ -142,10 +142,11 @@ export default function HomeScreen({ navigation, route }) {
       {/* Header rosa */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
-          {/* Logo placeholder */}
-          <View style={styles.logoCircle}>
-            <Text style={{ fontSize: 22 }}>🐾</Text>
-          </View>
+          {/* Logo */}
+          <Image 
+            source={require('../assets/logoVet (1).png')}
+            style={styles.logo}
+          />
           <View style={{ marginLeft: 10 }}>
             <Text style={styles.ola}>Olá, {user?.nome?.split(' ')[0]}</Text>
             <Text style={styles.subtitulo}>Veja as informações sobre o seus pets</Text>
@@ -298,7 +299,7 @@ const styles = StyleSheet.create({
   safe:        { flex: 1, backgroundColor: COLORS.pinkBg, paddingTop: 20 },
   header:      { backgroundColor: COLORS.pinkBg, paddingBottom: 4 },
   headerTop:   { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 16 },
-  logoCircle:  { width: 46, height: 46, borderRadius: 23, backgroundColor: COLORS.white, alignItems: 'center', justifyContent: 'center' },
+  logo:        { width: 46, height: 46, borderRadius: 23 },
   ola:         { fontSize: 20, fontWeight: '800', color: COLORS.pink },
   subtitulo:   { fontSize: 12, color: COLORS.gray600, marginTop: 1 },
 
