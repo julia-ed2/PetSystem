@@ -15,7 +15,7 @@ class User(db.Model):
     login = db.Column(db.String(50), unique=True, nullable=False)
     senha_hash = db.Column(db.String(255), nullable=False)
     tipo_usuario = db.Column(
-        db.Enum('admin', 'veterinario', 'atendente', 'gerente'),
+        db.Enum('admin', 'veterinario', 'atendente', 'gerente', 'cliente'),
         default='atendente',
         nullable=False,
     )

@@ -3,6 +3,7 @@ from models import db, Appointment, Pet, Veterinario
 from auth import require_auth, require_role
 from datetime import datetime, date, time as dt_time
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import joinedload
 
 agendamentos_bp = Blueprint('agendamentos', __name__)
 
@@ -49,7 +50,10 @@ def list_agendamentos(current_user):
             except (ValueError, TypeError):
                 pass
         
-        agendamentos = query.all()
+        agendamentos = query.options(
+            joinedload(Appointment.pet).joinedload(Pet.tutor),
+            joinedload(Appointment.veterinario_obj),
+        ).order_by(Appointment.data.desc(), Appointment.hora.desc()).all()
         
         return jsonify({
             'success': True,

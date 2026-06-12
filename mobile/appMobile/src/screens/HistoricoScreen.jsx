@@ -7,12 +7,28 @@ import PinkHeader from '../components/PinkHeader';
 import PetSelector from '../components/PetSelector';
 import Loading from '../components/Loading';
 
-function HistoricoCard({ item }) {
-  const corBorda = item.cor === 'pink' ? COLORS.pink : COLORS.purple;
-  const corTitulo = item.cor === 'pink' ? COLORS.pink : COLORS.purple;
+const ICONE_TIPO = {
+  'Consulta':  'stethoscope-outline',
+  'Exame':     'document-text-outline',
+  'Vacinação': 'medical-outline',
+  'Cirurgia':  'cut-outline',
+  'Passeio':   'paw-outline',
+};
 
-  // Processa negrito simples: **texto** → bold
+const COR_TIPO = {
+  'Consulta':  COLORS.purple,
+  'Exame':     '#607D8B',
+  'Vacinação': COLORS.pink,
+  'Cirurgia':  COLORS.pink,
+  'Passeio':   '#2196F3',
+};
+
+function HistoricoCard({ item }) {
+  const cor = COR_TIPO[item.tipo] || COLORS.purple;
+  const icone = ICONE_TIPO[item.tipo] || 'time-outline';
+
   function renderDescricao(texto) {
+    if (!texto) return null;
     const partes = texto.split(/\*\*(.*?)\*\*/g);
     return (
       <Text style={styles.cardDesc}>
@@ -26,14 +42,22 @@ function HistoricoCard({ item }) {
   }
 
   return (
-    <View style={[styles.card, { borderLeftColor: corBorda }]}>
-      <View style={styles.cardTopRow}>
-        <Text style={[styles.cardTipo, { color: corTitulo }]}>{item.tipo}</Text>
-        {item.hora ? (
-          <Text style={styles.cardMeta}>{item.hora} • {item.data}</Text>
-        ) : null}
+    <View style={[styles.card, { borderLeftColor: cor }]}>
+      <View style={styles.cardLeft}>
+        <View style={[styles.iconWrap, { backgroundColor: cor + '18' }]}>
+          <Ionicons name={icone} size={18} color={cor} />
+        </View>
       </View>
-      {renderDescricao(item.descricao)}
+      <View style={styles.cardRight}>
+        <View style={styles.cardTopRow}>
+          <Text style={[styles.cardTipo, { color: cor }]}>{item.tipo}</Text>
+          <View style={styles.cardMeta}>
+            {item.hora ? <Text style={styles.cardMetaText}>{item.hora}</Text> : null}
+            {item.data ? <Text style={styles.cardMetaText}>{item.data}</Text> : null}
+          </View>
+        </View>
+        {renderDescricao(item.descricao)}
+      </View>
     </View>
   );
 }
@@ -61,12 +85,15 @@ export default function HistoricoScreen({ navigation }) {
       </PinkHeader>
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
-        <Text style={styles.titulo}>Histórico clinico</Text>
+        <Text style={styles.titulo}>Histórico clínico</Text>
 
-        {loading ? <Loading /> : historico.length === 0 ? (
+        {loading ? (
+          <Loading />
+        ) : historico.length === 0 ? (
           <View style={styles.vazio}>
-            <Ionicons name="time-outline" size={40} color={COLORS.gray200} />
+            <Ionicons name="time-outline" size={44} color={COLORS.gray200} />
             <Text style={styles.vazioText}>Nenhum registro clínico.</Text>
+            <Text style={styles.vazioSub}>O histórico aparecerá após a primeira consulta.</Text>
           </View>
         ) : (
           historico.map(item => <HistoricoCard key={item.id} item={item} />)
@@ -81,21 +108,33 @@ export default function HistoricoScreen({ navigation }) {
 const styles = StyleSheet.create({
   safe:   { flex: 1, backgroundColor: COLORS.pink, paddingTop: 20 },
   scroll: { flex: 1, backgroundColor: COLORS.gray100, paddingHorizontal: 16, paddingTop: 20 },
-  titulo: { fontSize: 16, fontWeight: '700', color: COLORS.black, marginBottom: 14 },
+  titulo: { fontSize: 15, fontWeight: '700', color: COLORS.gray800, marginBottom: 14 },
 
   card: {
+    flexDirection: 'row',
     backgroundColor: COLORS.white,
     borderRadius: 14,
-    padding: 14,
-    marginBottom: 12,
+    marginBottom: 10,
     borderLeftWidth: 4,
     shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+    overflow: 'hidden',
   },
-  cardTopRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  cardTipo:   { fontSize: 15, fontWeight: '700' },
-  cardMeta:   { fontSize: 12, color: COLORS.gray400 },
-  cardDesc:   { fontSize: 13, color: COLORS.gray800, lineHeight: 20 },
+  cardLeft:  { paddingLeft: 12, paddingTop: 14, paddingBottom: 14 },
+  iconWrap:  {
+    width: 36, height: 36, borderRadius: 10,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  cardRight: { flex: 1, padding: 14, paddingLeft: 10 },
+  cardTopRow: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'flex-start', marginBottom: 6,
+  },
+  cardTipo:     { fontSize: 14, fontWeight: '700', flex: 1, marginRight: 8 },
+  cardMeta:     { alignItems: 'flex-end' },
+  cardMetaText: { fontSize: 11, color: COLORS.gray400, lineHeight: 16 },
+  cardDesc:     { fontSize: 13, color: COLORS.gray800, lineHeight: 20 },
 
-  vazio:     { alignItems: 'center', justifyContent: 'center', paddingTop: 60 },
-  vazioText: { color: COLORS.gray400, fontSize: 14, marginTop: 10 },
+  vazio:    { alignItems: 'center', justifyContent: 'center', paddingTop: 60 },
+  vazioText:{ color: COLORS.gray400, fontSize: 14, marginTop: 12, fontWeight: '600' },
+  vazioSub: { color: COLORS.gray400, fontSize: 12, marginTop: 4, textAlign: 'center' },
 });

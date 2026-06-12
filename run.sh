@@ -6,6 +6,24 @@ ROOT_DIR="$SCRIPT_DIR"
 
 cd "$ROOT_DIR"
 
+# Detect Windows system paths (Git Bash exposes them as /c/WINDOWS/...)
+case "$ROOT_DIR" in
+	/c/Windows/*|/c/WINDOWS/*|/c/windows/*)
+		echo "[ERROR] O projeto esta em um diretorio protegido do Windows: $ROOT_DIR"
+		echo ""
+		echo "  O Windows nao permite criar arquivos em C:\\Windows\\ sem permissao de administrador."
+		echo "  Mova o projeto para um diretorio do seu usuario. Por exemplo:"
+		echo ""
+		echo "    C:\\Users\\$(whoami | sed 's|.*\\\\||')\\PetSystem"
+		echo ""
+		echo "  Passos:"
+		echo "    1. Feche o VS Code"
+		echo "    2. Copie/mova a pasta PetSystem para fora de C:\\Windows\\"
+		echo "    3. Abra o VS Code nessa nova pasta e rode 'bash run.sh' novamente"
+		exit 1
+		;;
+esac
+
 echo "Iniciando PetSystem..."
 echo ""
 
@@ -108,24 +126,31 @@ if [[ ! -d "$ROOT_DIR/.venv" ]]; then
 	}
 fi
 
-source "$ROOT_DIR/.venv/bin/activate"
+# Windows venvs use Scripts/ instead of bin/
+if [[ -f "$ROOT_DIR/.venv/Scripts/activate" ]]; then
+	VENV_BIN="$ROOT_DIR/.venv/Scripts"
+	source "$ROOT_DIR/.venv/Scripts/activate"
+else
+	VENV_BIN="$ROOT_DIR/.venv/bin"
+	source "$ROOT_DIR/.venv/bin/activate"
+fi
 
 ensure_backend_dependencies() {
-	if "$ROOT_DIR/.venv/bin/python" -c "import flask_jwt_extended" >/dev/null 2>&1; then
+	if "$VENV_BIN/python" -c "import flask_jwt_extended" >/dev/null 2>&1; then
 		return 0
 	fi
 
 	echo "[INFO] Instalando dependencias do backend..."
-	"$ROOT_DIR/.venv/bin/pip" install "Flask-JWT-Extended==4.4.4" || {
+	"$VENV_BIN/pip" install "Flask-JWT-Extended==4.4.4" || {
 		echo "[ERROR] Falha ao instalar Flask-JWT-Extended"
 		exit 1
 	}
-	"$ROOT_DIR/.venv/bin/pip" install -r "$ROOT_DIR/petSystemPy/requirements.txt" || {
+	"$VENV_BIN/pip" install -r "$ROOT_DIR/petSystemPy/requirements.txt" || {
 		echo "[ERROR] Falha ao instalar dependencias do backend"
 		exit 1
 	}
 
-	if ! "$ROOT_DIR/.venv/bin/python" -c "import flask_jwt_extended" >/dev/null 2>&1; then
+	if ! "$VENV_BIN/python" -c "import flask_jwt_extended" >/dev/null 2>&1; then
 		echo "[ERROR] Dependencia flask_jwt_extended continua ausente apos a instalacao"
 		exit 1
 	fi
@@ -136,7 +161,7 @@ ensure_backend_dependencies() {
 if [[ ! -f "$ROOT_DIR/.venv/.pet_system_backend_installed" ]]; then
 	ensure_backend_dependencies
 else
-	if ! "$ROOT_DIR/.venv/bin/python" -c "import flask_jwt_extended" >/dev/null 2>&1; then
+	if ! "$VENV_BIN/python" -c "import flask_jwt_extended" >/dev/null 2>&1; then
 		ensure_backend_dependencies
 	fi
 fi
@@ -211,7 +236,7 @@ echo "[OK] MySQL iniciado"
 echo ""
 
 echo "[INFO] Inicializando banco de dados..."
-if ! "$ROOT_DIR/.venv/bin/python" "$ROOT_DIR/petSystemPy/init_db.py" --no-confirm --skip-seed; then
+if ! "$VENV_BIN/python" "$ROOT_DIR/petSystemPy/init_db.py" --no-confirm --skip-seed; then
 	echo "[ERROR] Falha ao inicializar o banco de dados"
 	exit 1
 fi
@@ -220,7 +245,7 @@ echo "[OK] Banco de dados inicializado"
 echo ""
 
 echo "[INFO] Configurando usuario admin..."
-ROOT_PY_DIR="$ROOT_DIR/petSystemPy" "$ROOT_DIR/.venv/bin/python" << 'PYTHON_EOF'
+ROOT_PY_DIR="$ROOT_DIR/petSystemPy" "$VENV_BIN/python" << 'PYTHON_EOF'
 import os
 import sys
 
@@ -265,7 +290,7 @@ echo ""
 echo "[INFO] Iniciando Backend (Flask)..."
 (
 	cd "$ROOT_DIR/petSystemPy"
-	"$ROOT_DIR/.venv/bin/python" app.py
+	"$VENV_BIN/python" app.py
 ) &
 BACKEND_PID=$!
 sleep 3

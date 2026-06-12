@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, Outlet, useLocation, useParams } from 'react-router-dom';
 
 import { useAuth } from '../hooks/useAuth';
@@ -10,18 +10,19 @@ import CadastroPage from './Cadastro';
 import TelaPrincipal from './TelaPrincipal';
 import ViewAgenda from './agenda/Agenda';
 import FormNewAppointment from './agenda/FormAgenda';
-import ViewVaccination from './Vacinacao';
-import Estoque from './Estoque';
-import Financeiro from './Financeiro';
 import Sidebar from '../components/Menu';
-import ViewProntuarios from './prontuario/Prontuario';
-import ProntuarioDetalhe from './prontuario/ProntuarioDetalhe';
-import EditarPet from './prontuario/EditarPet';
-import Cadastros from './cadastros/Cadastros';
-import CadastrarCliente from './cadastros/CadastrarCliente';
-import CadastrarUsuario from './cadastros/CadastroUsuario';
-import PerfilUsuario from './cadastros/PerfilUsuario';
 import AuthExpiryHandler from '../components/AuthExpiryHandler';
+
+const ViewVaccination  = lazy(() => import('./Vacinacao'));
+const Estoque          = lazy(() => import('./Estoque'));
+const Financeiro       = lazy(() => import('./Financeiro'));
+const ViewProntuarios  = lazy(() => import('./prontuario/Prontuario'));
+const ProntuarioDetalhe = lazy(() => import('./prontuario/ProntuarioDetalhe'));
+const EditarPet        = lazy(() => import('./prontuario/EditarPet'));
+const Cadastros        = lazy(() => import('./cadastros/Cadastros'));
+const CadastrarCliente = lazy(() => import('./cadastros/CadastrarCliente'));
+const CadastrarUsuario = lazy(() => import('./cadastros/CadastroUsuario'));
+const PerfilUsuario    = lazy(() => import('./cadastros/PerfilUsuario'));
 
 
 export default function App() {
@@ -151,7 +152,13 @@ function DashboardLayout({ onLogout }) {
                 }}
             />
             <main className="flex-1 overflow-hidden">
-                <Outlet />
+                <Suspense fallback={
+                    <div className="flex-1 flex items-center justify-center h-full">
+                        <div className="w-7 h-7 border-4 border-purple-600 border-t-transparent rounded-full animate-spin" />
+                    </div>
+                }>
+                    <Outlet />
+                </Suspense>
             </main>
         </div>
     );

@@ -23,7 +23,7 @@ class DevelopmentConfig(Config):
     DEBUG = True
     TESTING = False
     FLASK_ENV = 'development'
-    SQLALCHEMY_ECHO = True
+    SQLALCHEMY_ECHO = False
     
     # Get database config from environment
     _db_host = os.getenv('DB_HOST', 'localhost')
@@ -53,6 +53,13 @@ class ProductionConfig(Config):
         f"{os.getenv('DB_PORT', '3306')}/"
         f"{os.getenv('DB_NAME')}"
     )
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_size': 20,
+        'max_overflow': 10,
+        'pool_timeout': 10,
+        'pool_recycle': 1800,
+        'pool_pre_ping': True,
+    }
 
 
 class TestingConfig(Config):

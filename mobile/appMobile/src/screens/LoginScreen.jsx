@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity,
-  StyleSheet, SafeAreaView, Image, Alert, KeyboardAvoidingView, Platform, ScrollView,
+  View, Text, TextInput, TouchableOpacity, Image,
+  StyleSheet, SafeAreaView, Alert, KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
 import { COLORS } from '../constants/colors';
 import { api } from '../service/api';
@@ -9,19 +9,27 @@ import logoPet from '../assets/logoVet (1).jpeg';
 
 
 export default function LoginScreen({ navigation }) {
-  const [email, setEmail]   = useState('');
-  const [senha, setSenha]   = useState('');
-  const [loading, setLoad]  = useState(false);
+  const [login, setLogin] = useState('');
+  const [senha, setSenha] = useState('');
+  const [loading, setLoad] = useState(false);
 
   async function handleLogin() {
-    if (!email || !senha) { Alert.alert('Atenção', 'Preencha email e senha.'); return; }
+    if (!login || !senha) {
+      Alert.alert('Atenção', 'Preencha login e senha.');
+      return;
+    }
     setLoad(true);
     try {
-      await api.login(email, senha);
-      // Quando o backend estiver pronto, salve o token aqui (AsyncStorage, SecureStore, etc.)
+      await api.login(login.trim(), senha);
       navigation.replace('MainTabs');
     } catch (e) {
-      Alert.alert('Erro', 'Email ou senha inválidos.');
+      if (e.code === 403) {
+        Alert.alert('Acesso bloqueado', 'Usuário inativo. Entre em contato com a clínica.');
+      } else if (e.code === 401) {
+        Alert.alert('Erro', 'Login ou senha incorretos.');
+      } else {
+        Alert.alert('Erro', 'Não foi possível conectar ao servidor. Verifique sua conexão.');
+      }
     } finally {
       setLoad(false);
     }
@@ -29,12 +37,15 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={20} style={{ flex: 1 }}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={20}
+        style={{ flex: 1 }}
+      >
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
 
           {/* Logo */}
           <View style={styles.logoContainer}>
-            {/* Substitua por <Image source={require('../assets/logo.png')} style={styles.logo} /> */}
             <View style={styles.logoPlaceholder}>
               
               <Image source={require('../assets/logoVet (1).png')} className ='w-20 h-20' /> 
@@ -47,14 +58,16 @@ export default function LoginScreen({ navigation }) {
           <View style={styles.card}>
             <Text style={styles.titulo}>Painel de Acesso</Text>
 
-            <Text style={styles.label}>Email:</Text>
+            <Text style={styles.label}>Login:</Text>
             <TextInput
               style={styles.input}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
+              value={login}
+              onChangeText={setLogin}
+              keyboardType="default"
               autoCapitalize="none"
+              autoCorrect={false}
               placeholderTextColor={COLORS.gray400}
+              placeholder="Seu login"
             />
 
             <Text style={[styles.label, { marginTop: 16 }]}>Senha:</Text>
@@ -64,6 +77,7 @@ export default function LoginScreen({ navigation }) {
               onChangeText={setSenha}
               secureTextEntry
               placeholderTextColor={COLORS.gray400}
+              placeholder="Sua senha"
             />
 
             <TouchableOpacity style={styles.forgotContainer}>

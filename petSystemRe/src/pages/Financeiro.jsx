@@ -66,16 +66,12 @@ export default function Financeiro({ agendamentos = [], prontuarios = [], vendas
 
   async function carregar() {
     setLoading(true);
-    
-    const dataApi = await listarLancamentos();
+    const dataApi = await listarLancamentos({ ano: new Date().getFullYear() });
     setLancamentos(dataApi);
     setLoading(false);
   }
 
-  // Recarrega quando agendamentos mudam (quando novos agendamentos são criados)
-  useEffect(() => { 
-    carregar(); 
-  }, [agendamentos, prontuarios, vendas, saidasEstoque]);
+  useEffect(() => { carregar(); }, []);
 
   const mesNum = MESES_NUM[mesSel];
 

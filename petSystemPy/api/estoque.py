@@ -250,7 +250,10 @@ def listar_movimentacoes(current_user):
         if tipo:
             query = query.filter_by(tipo_movimentacao=tipo)
 
-        movimentacoes = query.order_by(MovimentacaoEstoque.data_hora.desc(), MovimentacaoEstoque.id_movimentacao.desc()).all()
+        movimentacoes = query.options(
+            joinedload(MovimentacaoEstoque.produto),
+            joinedload(MovimentacaoEstoque.usuario),
+        ).order_by(MovimentacaoEstoque.data_hora.desc(), MovimentacaoEstoque.id_movimentacao.desc()).all()
         return jsonify({
             'success': True,
             'data': [mov.to_dict() for mov in movimentacoes],
@@ -467,6 +470,13 @@ def listar_lancamentos(current_user):
             try:
                 mes_int = int(mes)
                 query = query.filter(extract('month', LancamentoFinanceiro.data_lancamento) == mes_int)
+            except Exception:
+                pass
+
+        ano = request.args.get('ano')
+        if ano:
+            try:
+                query = query.filter(extract('year', LancamentoFinanceiro.data_lancamento) == int(ano))
             except Exception:
                 pass
 

@@ -227,6 +227,7 @@ CREATE TABLE IF NOT EXISTS LANCAMENTO_FINANCEIRO (
     valor DECIMAL(10,2) NOT NULL CHECK (valor >= 0),
     data_lancamento DATE NOT NULL,
     forma_pagamento VARCHAR(50) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'Pago',
     CONSTRAINT fk_lancamento_pet
         FOREIGN KEY (id_pet) REFERENCES PET(id_pet)
         ON DELETE SET NULL ON UPDATE CASCADE,
@@ -240,7 +241,8 @@ CREATE TABLE IF NOT EXISTS LANCAMENTO_FINANCEIRO (
         FOREIGN KEY (id_servico) REFERENCES SERVICO(id_servico)
         ON DELETE SET NULL ON UPDATE CASCADE,
     INDEX idx_lancamento_data (data_lancamento),
-    INDEX idx_lancamento_tipo (tipo_lancamento)
+    INDEX idx_lancamento_tipo (tipo_lancamento),
+    INDEX idx_lancamento_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS AGENDAMENTO (
@@ -356,11 +358,14 @@ CREATE TABLE IF NOT EXISTS PRODUTO (
     id_produto INT PRIMARY KEY AUTO_INCREMENT,
     nome VARCHAR(100) NOT NULL,
     marca VARCHAR(50),
+    categoria VARCHAR(50) NOT NULL DEFAULT 'Outro',
     descricao TEXT,
     quantidade_estoque INT NOT NULL DEFAULT 0,
     estoque_minimo INT NOT NULL DEFAULT 0,
     valor_unitario DECIMAL(10,2) NOT NULL CHECK (valor_unitario >= 0),
-    ativo BOOLEAN NOT NULL DEFAULT TRUE
+    ativo BOOLEAN NOT NULL DEFAULT TRUE,
+    INDEX idx_produto_ativo (ativo),
+    INDEX idx_produto_categoria (categoria)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS MOVIMENTACAO_ESTOQUE (

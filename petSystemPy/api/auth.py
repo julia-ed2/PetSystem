@@ -13,7 +13,7 @@ from auth import (
 
 auth_bp = Blueprint('auth', __name__)
 
-VALID_USER_TYPES = {'admin', 'veterinario', 'atendente', 'gerente'}
+VALID_USER_TYPES = {'admin', 'veterinario', 'atendente', 'gerente', 'cliente'}
 USER_TYPE_ALIASES = {
     'administrador': 'admin',
     'usuario': 'atendente',
@@ -281,6 +281,72 @@ def list_users(current_user):
             'error': f'Erro ao listar usuários: {str(e)}',
             'code': 'INTERNAL_ERROR'
         }), 500
+
+
+@auth_bp.route('/register-cliente', methods=['POST'])
+def register_cliente():
+    """
+    Public self-registration for client (tutor) users.
+    Creates Tutor + User(tipo='cliente') in a single transaction.
+    Expects JSON: { "nome", "login", "password", "cpf", "telefone"?, "endereco"? }
+    """
+    try:
+        dados = request.get_json()
+        if not dados:
+            return jsonify({'success': False, 'error': 'Nenhum dado recebido', 'code': 'EMPTY_REQUEST'}), 400
+
+        nome     = dados.get('nome', '').strip()
+        login    = dados.get('login', '').strip().lower()
+        senha    = dados.get('password', '')
+        cpf_raw  = ''.join(filter(str.isdigit, dados.get('cpf', '')))
+        telefone = dados.get('telefone', '').strip()
+        endereco = dados.get('endereco', '').strip()
+
+        if not nome or not login or not senha or not cpf_raw:
+            return jsonify({'success': False, 'error': 'Nome, login, senha e CPF são obrigatórios', 'code': 'MISSING_FIELDS'}), 400
+
+        if len(senha) < 6:
+            return jsonify({'success': False, 'error': 'Senha deve ter pelo menos 6 caracteres', 'code': 'WEAK_PASSWORD'}), 400
+
+        if User.query.filter_by(login=login).first():
+            return jsonify({'success': False, 'error': 'Login já existe', 'code': 'LOGIN_ALREADY_EXISTS'}), 409
+
+        if Tutor.query.filter_by(cpf=cpf_raw).first():
+            return jsonify({'success': False, 'error': 'CPF já cadastrado', 'code': 'CPF_ALREADY_EXISTS'}), 409
+
+        tutor = Tutor(nome=nome, cpf=cpf_raw, telefone=telefone or None, endereco=endereco or None, ativo=True)
+        db.session.add(tutor)
+        db.session.flush()
+
+        usuario = User(
+            nome=nome,
+            login=login,
+            senha_hash=hash_password(senha),
+            tipo_usuario='cliente',
+            ativo=True,
+            id_tutor=tutor.id_tutor,
+        )
+        db.session.add(usuario)
+        db.session.commit()
+
+        tokens = create_tokens(usuario.id_usuario)
+
+        return jsonify({
+            'success': True,
+            'message': 'Cadastro realizado com sucesso!',
+            'access_token': tokens['access_token'],
+            'refresh_token': tokens['refresh_token'],
+            'user': {
+                'id': usuario.id_usuario,
+                'nome': usuario.nome,
+                'login': usuario.login,
+                'tipo': usuario.tipo_usuario,
+                'tutor_id': usuario.id_tutor,
+            }
+        }), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': f'Erro ao cadastrar: {str(e)}', 'code': 'INTERNAL_ERROR'}), 500
 
 
 @auth_bp.route('/users/<int:user_id>', methods=['DELETE'])

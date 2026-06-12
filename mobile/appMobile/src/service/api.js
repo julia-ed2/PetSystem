@@ -1,146 +1,265 @@
-// ─── FAKE API ────────────────────────────────────────────────────────────────
-// Substitua cada função por fetch() real quando o backend estiver pronto.
-// Base URL de exemplo: const BASE = 'https://api.petsystem.com.br/v1';
-// ─────────────────────────────────────────────────────────────────────────────
+import { saveToken, getToken, clearToken } from './storage';
 
-const delay = (ms = 400) => new Promise(r => setTimeout(r, ms));
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://10.0.2.2:5000';
 
-// ── Usuário logado ────────────────────────────────────────────────────────────
-let _user = {
-  id: 'u1',
-  nome: 'Julia Eduarda',
-  email: 'juliaefs@unipam.edu.br',
-  cpf: '111.111.111-11',
-  celular: '(34) 99999-9999',
-  endereco: 'Rua Major Gote, 1 - Patos de Minas, MG',
-  notificacoes: true,
+// ── In-memory state (sem equivalente no backend) ──────────────────────────────
+let _currentUser = null;
+let _metaPets    = {};
+
+// ── HTTP helper ───────────────────────────────────────────────────────────────
+async function request(method, path, body) {
+  const token = await getToken();
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (res.status === 401) {
+    await clearToken();
+    _currentUser = null;
+    throw Object.assign(new Error('Sessão expirada'), { code: 401 });
+  }
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw Object.assign(new Error(err.error || `HTTP ${res.status}`), { code: res.status });
+  }
+  return res.json();
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function fmtDate(iso) {
+  if (!iso) return '';
+  const str = String(iso).split('T')[0]; // remove hora se existir
+  const parts = str.split('-');
+  if (parts.length !== 3) return iso;
+  const [y, m, d] = parts;
+  return `${d}/${m}/${y}`;
+}
+
+const COR_POR_TIPO = {
+  'Vacinação': 'pink',
+  'Cirurgia':  'pink',
+  'Consulta':  'purple',
+  'Exame':     'gray',
 };
 
-// ── Pets ──────────────────────────────────────────────────────────────────────
-let _pets = [
-  { id: 'p1', nome: 'Theo', especie: 'Cachorro', raca: 'Shih Tzu', sexo: 'Macho', idade: '5 anos', foto: null },
-  { id: 'p2', nome: 'Mel',  especie: 'Gato',     raca: 'SRD',      sexo: 'Fêmea', idade: '3 anos', foto: null },
-];
-
-// ── Vacinas ───────────────────────────────────────────────────────────────────
-let _vacinas = {
-  p1: [
-    { id: 'v1', nome: 'V10 (Polivalente)', data: '02/04/2026', proximoReforcao: '02/04/2027', veterinario: 'Dr. Exemplo 1' },
-    { id: 'v2', nome: 'Raiva',             data: '01/03/2026', proximoReforcao: '01/03/2027', veterinario: 'Dr. Exemplo 2' },
-    { id: 'v3', nome: 'Leishmaniose',      data: '31/01/2026', proximoReforcao: '31/01/2027', veterinario: 'Dr. Exemplo 1' },
-  ],
-  p2: [
-    { id: 'v4', nome: 'Tríplice Felina',   data: '10/02/2026', proximoReforcao: '10/02/2027', veterinario: 'Dr. Exemplo 2' },
-  ],
-};
-
-// ── Exames ────────────────────────────────────────────────────────────────────
-let _exames = {
-  p1: [
-    { id: 'e1', nome: 'Hemograma', data: '07/04/2026', descricao: 'Resultado do exame disponível para download', arquivo: 'laudo_exame.pdf' },
-  ],
-  p2: [],
-};
-
-// ── Histórico clínico ─────────────────────────────────────────────────────────
-let _historico = {
-  p1: [
-    { id: 'h1', tipo: 'Pós-cirurgico',          cor: 'pink',   hora: '16:35', data: '08/04/2026', descricao: 'Theo está em observação no pós-cirurgico' },
-    { id: 'h2', tipo: 'Cirurgia',                cor: 'pink',   hora: '16:00', data: '08/04/2026', descricao: 'O procedimento cirurgico foi iniciado' },
-    { id: 'h3', tipo: 'Marcação de procedimento',cor: 'purple', hora: '',      data: '',           descricao: 'A cirurgia de castração de Theo foi marcada para o dia **08/04/2026** às **16:00**' },
-  ],
-  p2: [],
-};
-
-// ── Notificações / atualizações ───────────────────────────────────────────────
-let _atualizacoes = [
-  { id: 'n1', tipo: 'Lembrete',       data: '07/04/206', descricao: 'Há um procediemento marcado para amanhã às 16:00 para Theo', link: null },
-  { id: 'n2', tipo: 'Laudo de exame', data: '01/02/206', descricao: 'Os resultados dos exames de sangue de Theo já estão disponíveis', link: 'Visualizar resultados' },
-];
-
-// ── Atendimento em andamento ──────────────────────────────────────────────────
-let _atendimento = { ativo: true, descricao: 'Theo está em observação', petId: 'p1' };
-
-// ── Meta de passeios ──────────────────────────────────────────────────────────
-let _meta = { objetivo: 5, realizado: 4, unidade: 'por semana' };
-// Meta por pet (gamificação simples)
-let _metaPets = {
-  p1: { objetivo: 5, realizado: 4, unidade: 'por semana' },
-  p2: { objetivo: 3, realizado: 1, unidade: 'por semana' },
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// API functions — troque o corpo de cada uma por fetch() real
 // ─────────────────────────────────────────────────────────────────────────────
 export const api = {
-  // Auth
-  login: async (email, senha) => {
-    await delay();
-    if (email && senha) return { token: 'fake-token', user: _user };
-    throw new Error('Credenciais inválidas');
-  },
-  logout: async () => { await delay(200); return true; },
 
-  // User
-  getUser:    async () => { await delay(); return { ..._user }; },
-  updateUser: async (dados) => { await delay(); _user = { ..._user, ...dados }; return { ..._user }; },
+  // ── Auth ────────────────────────────────────────────────────────────────────
+  login: async (login, senha) => {
+    const json = await request('POST', '/api/auth/login', { login, password: senha });
+    await saveToken(json.access_token);
+    _currentUser = { ...json.user, notificacoes: true };
+    return _currentUser;
+  },
+
+  logout: async () => {
+    await clearToken();
+    _currentUser = null;
+    return true;
+  },
+
+  isLoggedIn: async () => {
+    const token = await getToken();
+    return !!token;
+  },
+
+  // ── User ────────────────────────────────────────────────────────────────────
+  getUser: async () => {
+    if (_currentUser?.tutor_id !== undefined) return { ..._currentUser };
+    const json = await request('GET', '/api/auth/me');
+    const user = { ...json.user, email: json.user.login, notificacoes: true };
+    if (user.tutor_id) {
+      try {
+        const tj = await request('GET', `/api/tutores/${user.tutor_id}`);
+        const t = tj.data || {};
+        user.cpf      = t.cpf      || '';
+        user.celular  = t.telefone || '';
+        user.endereco = t.endereco || '';
+      } catch {}
+    }
+    _currentUser = user;
+    return { ..._currentUser };
+  },
+
+  updateUser: async (dados) => {
+    const user = await api.getUser();
+    if (user.tutor_id) {
+      await request('PUT', `/api/tutores/${user.tutor_id}`, {
+        nome:     dados.nome,
+        telefone: dados.celular,
+        endereco: dados.endereco,
+      });
+    }
+    _currentUser = { ..._currentUser, nome: dados.nome, celular: dados.celular, endereco: dados.endereco };
+    return { ..._currentUser };
+  },
+
   toggleNotificacoes: async () => {
-    await delay(200);
-    _user.notificacoes = !_user.notificacoes;
-    return _user.notificacoes;
+    _currentUser = { ..._currentUser, notificacoes: !(_currentUser?.notificacoes ?? true) };
+    return _currentUser.notificacoes;
   },
 
-  // Pets
-  getPets:    async () => { await delay(); return [..._pets]; },
-  addPet:     async (pet) => {
-    await delay();
-    const novo = { ...pet, id: `p${Date.now()}` };
-    _pets = [..._pets, novo];
-    _vacinas[novo.id]  = [];
-    _exames[novo.id]   = [];
-    _historico[novo.id] = [];
-    return novo;
+  // ── Pets ────────────────────────────────────────────────────────────────────
+  getPets: async () => {
+    const user = await api.getUser();
+    if (!user.tutor_id) return [];
+    const json = await request('GET', `/api/pets?tutor_id=${user.tutor_id}`);
+    return (json.data || []).map(p => ({
+      ...p,
+      idade: p.idade != null ? `${p.idade} anos` : '',
+    }));
   },
 
-  // Vacinas
-  getVacinas: async (petId) => { await delay(); return [...(_vacinas[petId] || [])]; },
+  addPet: async (pet) => {
+    const user = await api.getUser();
+    const json = await request('POST', '/api/pets', { ...pet, tutor_id: user.tutor_id });
+    return json.data;
+  },
 
-  // Exames
-  getExames:  async (petId) => { await delay(); return [...(_exames[petId] || [])]; },
+  // ── Vacinas ─────────────────────────────────────────────────────────────────
+  getVacinas: async (petId) => {
+    const json = await request('GET', `/api/pets/${petId}/vaccines`);
+    return (json.data || []).map(v => ({
+      id:             v.id,
+      nome:           v.vacina_nome,
+      data:           fmtDate(v.data_aplicacao),
+      proximoReforco: v.next_dose_date ? fmtDate(v.next_dose_date) : null,
+      veterinario:    v.veterinario_nome || '',
+      lote:           v.lote || '',
+    }));
+  },
 
-  // Histórico
-  getHistorico: async (petId) => { await delay(); return [...(_historico[petId] || [])]; },
+  // ── Exames ──────────────────────────────────────────────────────────────────
+  getExames: async (petId) => {
+    const json = await request('GET', `/api/pets/${petId}/records`);
+    return (json.data || [])
+      .filter(r => r.tipo === 'Exame')
+      .map(r => ({
+        id:        r.id,
+        nome:      r.descricao || 'Exame',
+        data:      fmtDate(r.data) || '',
+        descricao: r.observacoes || '',
+        arquivo:   r.arquivo || null,
+      }));
+  },
 
-  // Home
-  getAtualizacoes: async () => { await delay(); return [..._atualizacoes]; },
-  getAtendimento:  async () => { await delay(); return { ..._atendimento }; },
-  getMeta:         async () => { await delay(); return { ..._meta }; },
-  updateMeta:      async (dados) => { await delay(); _meta = { ..._meta, ...dados }; return { ..._meta }; },
-  // Meta por pet
-  getMetaPet:      async (petId) => { await delay(); return { ...(_metaPets[petId] || { objetivo: 5, realizado: 0, unidade: 'por semana' }) }; },
-  updateMetaPet:   async (petId, dados) => { await delay(); _metaPets[petId] = { ...(_metaPets[petId] || { objetivo: 5, realizado: 0, unidade: 'por semana' }), ...dados }; return { ..._metaPets[petId] }; },
-  incrementPasseio: async (petId) => { // registra um passeio para o pet
-    await delay();
+  // ── Histórico ───────────────────────────────────────────────────────────────
+  getHistorico: async (petId) => {
+    const json = await request('GET', `/api/pets/${petId}/records`);
+    return (json.data || []).map(r => {
+      let hora = r.hora || '';
+      let dataStr = r.data || '';
+      if (!hora && dataStr.includes('T')) {
+        const [datePart, timePart] = dataStr.split('T');
+        hora = timePart ? timePart.substring(0, 5) : '';
+        dataStr = datePart;
+      }
+      return {
+        id:        r.id,
+        tipo:      r.tipo,
+        data:      fmtDate(dataStr),
+        hora:      hora,
+        descricao: [r.descricao, r.observacoes].filter(Boolean).join(' — '),
+        cor:       COR_POR_TIPO[r.tipo] || 'purple',
+      };
+    });
+  },
+
+  // ── Home ────────────────────────────────────────────────────────────────────
+  getAtualizacoes: async (petId = null) => {
+    try {
+      let petIds = [];
+      if (petId) {
+        petIds = [petId];
+      } else {
+        const pets = await api.getPets();
+        petIds = pets.map(p => p.id);
+      }
+      const all = [];
+      for (const id of petIds) {
+        const json = await request('GET', `/api/agendamentos?pet_id=${id}`);
+        for (const a of json.data || []) {
+          all.push({
+            id:        `ag-${a.id}`,
+            tipo:      a.tipo,
+            _raw:      a.data || '',
+            data:      a.data ? fmtDate(a.data) : '',
+            descricao: `${a.pet_nome} — ${a.veterinario_nome || 'Veterinário'}`,
+          });
+        }
+      }
+      return all
+        .sort((a, b) => b._raw.localeCompare(a._raw))
+        .slice(0, 5)
+        .map(({ _raw, ...rest }) => rest);
+    } catch {
+      return [];
+    }
+  },
+
+  getAtendimento: async () => {
+    try {
+      const pets = await api.getPets();
+      for (const pet of pets) {
+        const json = await request('GET', `/api/agendamentos?pet_id=${pet.id}&status=em_progresso`);
+        if (json.data?.length > 0) {
+          const a = json.data[0];
+          return {
+            ativo:       true,
+            petId:       a.pet_id,
+            descricao:   `${a.pet_nome} em ${a.tipo}`,
+            veterinario: a.veterinario_nome || '',
+            inicio:      a.hora || '',
+          };
+        }
+      }
+      return { ativo: false };
+    } catch {
+      return { ativo: false };
+    }
+  },
+
+  // ── Meta de passeios (local — sem backend) ──────────────────────────────────
+  getMeta: async () => ({ objetivo: 5, realizado: 0, unidade: 'por semana' }),
+
+  updateMeta: async (dados) => dados,
+
+  getMetaPet: async (petId) => ({
+    ...{ objetivo: 5, realizado: 0, unidade: 'por semana' },
+    ...(_metaPets[petId] || {}),
+  }),
+
+  updateMetaPet: async (petId, dados) => {
+    _metaPets[petId] = { ...(_metaPets[petId] || { objetivo: 5, realizado: 0, unidade: 'por semana' }), ...dados };
+    return { ..._metaPets[petId] };
+  },
+
+  incrementPasseio: async (petId) => {
     if (!_metaPets[petId]) _metaPets[petId] = { objetivo: 5, realizado: 0, unidade: 'por semana' };
     _metaPets[petId].realizado = (_metaPets[petId].realizado || 0) + 1;
     return { ..._metaPets[petId] };
   },
+
   registerPasseio: async (petId) => {
-    await delay();
     if (!_metaPets[petId]) _metaPets[petId] = { objetivo: 5, realizado: 0, unidade: 'por semana' };
-    _metaPets[petId].realizado = Math.min((_metaPets[petId].realizado || 0) + 1, _metaPets[petId].objetivo);
-    const pet = _pets.find(p => p.id === petId) || { nome: 'pet' };
+    _metaPets[petId].realizado = Math.min(
+      (_metaPets[petId].realizado || 0) + 1,
+      _metaPets[petId].objetivo
+    );
     const agora = new Date();
     const novoHistorico = {
-      id: `h${Date.now()}`,
-      tipo: 'Passeio',
-      cor: 'purple',
-      hora: agora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      data: agora.toLocaleDateString('pt-BR'),
-      descricao: `Passeio registrado para ${pet.nome}.`,
+      id:        `passeio-${Date.now()}`,
+      tipo:      'Passeio',
+      cor:       'purple',
+      hora:      agora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      data:      agora.toLocaleDateString('pt-BR'),
+      descricao: 'Passeio registrado.',
     };
-    if (!_historico[petId]) _historico[petId] = [];
-    _historico[petId] = [novoHistorico, ..._historico[petId]];
     return { meta: { ..._metaPets[petId] }, historico: novoHistorico };
   },
 };
