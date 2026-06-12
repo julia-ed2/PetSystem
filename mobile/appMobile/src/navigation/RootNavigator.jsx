@@ -27,9 +27,9 @@ export default function RootNavigator() {
   return (
     <Stack.Navigator
       screenOptions={{
-        headerShown: false,
-        animation: 'slide_from_right',
-        animationDuration: 220,
+        headerShown:       false,
+        animation:         'slide_from_right',
+        animationDuration: 250,
       }}
       initialRouteName={isLoggedIn ? 'MainTabs' : 'Login'}
     >

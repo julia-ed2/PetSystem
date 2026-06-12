@@ -84,7 +84,8 @@ def login():
                 'id': usuario.id_usuario,
                 'nome': usuario.nome,
                 'login': usuario.login,
-                'tipo': usuario.tipo_usuario
+                'tipo': usuario.tipo_usuario,
+                'tutor_id': usuario.id_tutor,
             }
         }), 200
     except Exception as e:

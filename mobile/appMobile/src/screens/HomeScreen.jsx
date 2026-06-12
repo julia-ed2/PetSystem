@@ -6,8 +6,10 @@ import {
   Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { COLORS } from '../constants/colors';
 import { api } from '../service/api';
+import { useApp } from '../context/AppContext';
 import PetSelector from '../components/PetSelector';
 import Loading from '../components/Loading';
 
@@ -38,9 +40,8 @@ function AgendamentoCard({ item }) {
 }
 
 export default function HomeScreen({ navigation, route }) {
-  const [pets,               setPets]               = useState([]);
+  const { pets, user, loadPets, loadUser } = useApp();
   const [petSel,             setPetSel]             = useState(null);
-  const [user,               setUser]               = useState(null);
   const [atualizacoes,       setAtualizacoes]       = useState([]);
   const [atendimento,        setAtendimento]        = useState(null);
   const [petMeta,            setPetMeta]            = useState(null);
@@ -51,43 +52,53 @@ export default function HomeScreen({ navigation, route }) {
   const [registeringPasseio, setRegisteringPasseio] = useState(false);
   const [confirmModalVisible,setConfirmModalVisible]= useState(false);
   const [newPasseioEntry,    setNewPasseioEntry]    = useState(null);
-  const iconScale = React.useRef(new Animated.Value(1)).current;
+  const iconScale    = React.useRef(new Animated.Value(1)).current;
+  const petDataCache = React.useRef({});
 
-  async function carregar() {
-    const [u, p] = await Promise.all([api.getUser(), api.getPets()]);
-    setUser(u);
-    setPets(p);
-    setPetSel(p[0] || null);
-  }
-
-  useEffect(() => { carregar(); }, []);
-
-  // Recarregar dados do pet selecionado sempre que ele mudar
   useEffect(() => {
-    if (!petSel) {
-      setAtualizacoes([]);
-      setAtendimento({ ativo: false });
-      setPetMeta(null);
-      setLoading(false);
-      return;
-    }
-    let mounted = true;
-    (async () => {
-      const [atu, at, mPet] = await Promise.all([
-        api.getAtualizacoes(petSel.id),
-        api.getAtendimento(),
-        api.getMetaPet(petSel.id),
-      ]);
-      if (!mounted) return;
-      setAtualizacoes(atu);
-      setAtendimento(at);
-      setPetMeta(mPet);
-      setLoading(false);
-    })();
-    return () => { mounted = false; };
-  }, [petSel]);
+    loadUser();
+    loadPets().then(p => {
+      if (p.length > 0) setPetSel(p[0]);
+    });
+  }, []);
 
-  // Navegar para pet vindo de outra tela
+  useFocusEffect(
+    useCallback(() => {
+      if (!petSel) {
+        setAtualizacoes([]);
+        setAtendimento({ ativo: false });
+        setPetMeta(null);
+        setLoading(false);
+        return;
+      }
+
+      // Show cached data instantly while fetching fresh data in background
+      const cached = petDataCache.current[petSel.id];
+      if (cached) {
+        setAtualizacoes(cached.atualizacoes);
+        setAtendimento(cached.atendimento);
+        setPetMeta(cached.petMeta);
+        setLoading(false);
+      }
+
+      let mounted = true;
+      (async () => {
+        const [atu, at, mPet] = await Promise.all([
+          api.getAtualizacoes(petSel.id),
+          api.getAtendimento(),
+          api.getMetaPet(petSel.id),
+        ]);
+        if (!mounted) return;
+        petDataCache.current[petSel.id] = { atualizacoes: atu, atendimento: at, petMeta: mPet };
+        setAtualizacoes(atu);
+        setAtendimento(at);
+        setPetMeta(mPet);
+        setLoading(false);
+      })();
+      return () => { mounted = false; };
+    }, [petSel])
+  );
+
   useEffect(() => {
     const petId = route?.params?.petId;
     if (petId && pets.length) {
@@ -107,9 +118,21 @@ export default function HomeScreen({ navigation, route }) {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await carregar();
+    if (petSel) delete petDataCache.current[petSel.id];
+    await Promise.all([loadUser(true), loadPets(true)]);
+    if (petSel) {
+      const [atu, at, mPet] = await Promise.all([
+        api.getAtualizacoes(petSel.id),
+        api.getAtendimento(),
+        api.getMetaPet(petSel.id),
+      ]);
+      petDataCache.current[petSel.id] = { atualizacoes: atu, atendimento: at, petMeta: mPet };
+      setAtualizacoes(atu);
+      setAtendimento(at);
+      setPetMeta(mPet);
+    }
     setRefreshing(false);
-  }, []);
+  }, [petSel, loadUser, loadPets]);
 
   async function handleRegisterPasseio() {
     if (!petMeta || petMeta.realizado >= petMeta.objetivo || registeringPasseio) return;
@@ -136,7 +159,6 @@ export default function HomeScreen({ navigation, route }) {
 
   return (
     <SafeAreaView style={styles.safe}>
-      {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <View style={styles.logoCircle}>
@@ -180,7 +202,6 @@ export default function HomeScreen({ navigation, route }) {
           keyboardShouldPersistTaps="handled"
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.pink]} />}
         >
-          {/* Banner atendimento em andamento */}
           {atendimento?.ativo && (
             <TouchableOpacity
               style={styles.banner}
@@ -198,7 +219,6 @@ export default function HomeScreen({ navigation, route }) {
             </TouchableOpacity>
           )}
 
-          {/* Agendamentos do pet selecionado */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Ionicons name="calendar-outline" size={18} color={COLORS.gray600} />
@@ -217,7 +237,6 @@ export default function HomeScreen({ navigation, route }) {
             )}
           </View>
 
-          {/* Meta de passeios */}
           {petMeta && (
             <View style={styles.metaCard}>
               <View style={styles.metaTop}>
@@ -288,7 +307,7 @@ export default function HomeScreen({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
-  safe:   { flex: 1, backgroundColor: COLORS.pinkBg, paddingTop: 20 },
+  safe:   { flex: 1, backgroundColor: COLORS.pinkBg },
   header: { backgroundColor: COLORS.pinkBg, paddingBottom: 8 },
   headerTop: {
     flexDirection: 'row', alignItems: 'center',

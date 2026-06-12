@@ -22,7 +22,12 @@ def list_agendamentos(current_user):
         pet_id = request.args.get('pet_id', type=int)
         if pet_id:
             query = query.filter_by(id_pet=pet_id)
-        
+
+        # Filter by tutor — joins Pet table
+        tutor_id = request.args.get('tutor_id', type=int)
+        if tutor_id:
+            query = query.join(Appointment.pet).filter(Pet.id_tutor == tutor_id)
+
         # Filter by veterinario if provided
         vet_id = request.args.get('veterinario_id', type=int)
         if vet_id:
@@ -50,14 +55,21 @@ def list_agendamentos(current_user):
             except (ValueError, TypeError):
                 pass
         
+        limit  = request.args.get('limit',  type=int, default=50)
+        offset = request.args.get('offset', type=int, default=0)
+        total  = query.count()
+
         agendamentos = query.options(
             joinedload(Appointment.pet).joinedload(Pet.tutor),
             joinedload(Appointment.veterinario_obj),
-        ).order_by(Appointment.data.desc(), Appointment.hora.desc()).all()
-        
+        ).order_by(Appointment.data.desc(), Appointment.hora.desc()).limit(limit).offset(offset).all()
+
         return jsonify({
             'success': True,
             'count': len(agendamentos),
+            'total': total,
+            'limit': limit,
+            'offset': offset,
             'data': [{
                 'id': a.id_agendamento,
                 'pet_id': a.id_pet,

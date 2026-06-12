@@ -44,7 +44,7 @@ export default function PerfilScreen({ navigation }) {
   function handleLogout() {
     Alert.alert('Encerrar sessão', 'Deseja sair da sua conta?', [
       { text: 'Cancelar', style: 'cancel' },
-      { text: 'Sair', style: 'destructive', onPress: () => navigation.replace('Login') },
+      { text: 'Sair', style: 'destructive', onPress: async () => { await api.logout(); navigation.replace('Login'); } },
     ]);
   }
 
@@ -120,7 +120,7 @@ export default function PerfilScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  safe:   { flex: 1, backgroundColor: COLORS.gray100, paddingTop: 20 },
+  safe:   { flex: 1, backgroundColor: COLORS.gray100 },
 
   header: {
     backgroundColor: COLORS.pink,

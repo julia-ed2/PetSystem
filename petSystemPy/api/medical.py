@@ -33,7 +33,11 @@ def _add_history_item(items, *, item_id, tipo, date_value, veterinarian=None, de
 
 def _history_sort_key(item):
     sort_value = item.get('_sort')
-    return sort_value or datetime.min
+    if sort_value is None:
+        return datetime.min
+    if isinstance(sort_value, datetime):
+        return sort_value
+    return datetime(sort_value.year, sort_value.month, sort_value.day)
 
 
 def _query_atendimentos(pet_id):
@@ -209,18 +213,22 @@ def listar_prontuarios(pet_id, current_user):
         historico.extend(_query_cirurgias(pet_id))
 
         historico = sorted(historico, key=_history_sort_key, reverse=True)
-        
+
+        limit  = request.args.get('limit',  type=int, default=50)
+        offset = request.args.get('offset', type=int, default=0)
+        total  = len(historico)
+        pagina = historico[offset:offset + limit]
+
         return jsonify({
             'success': True,
             'data': [
-                {
-                    key: value
-                    for key, value in item.items()
-                    if key != '_sort'
-                }
-                for item in historico
+                {key: value for key, value in item.items() if key != '_sort'}
+                for item in pagina
             ],
-            'count': len(historico)
+            'count': len(pagina),
+            'total': total,
+            'limit': limit,
+            'offset': offset,
         }), 200
     except Exception as e:
         return jsonify({
@@ -310,16 +318,20 @@ def listar_vacinas(pet_id, current_user):
                 'code': 'PET_NOT_FOUND'
             }), 404
         
-        rows = db.session.query(Vaccine, Appointment, Veterinario).outerjoin(
+        limit  = request.args.get('limit',  type=int, default=50)
+        offset = request.args.get('offset', type=int, default=0)
+
+        base_q = db.session.query(Vaccine, Appointment, Veterinario).outerjoin(
             Appointment, Vaccine.id_atendimento == Appointment.id_agendamento
         ).outerjoin(
             Veterinario, Appointment.id_veterinario == Veterinario.id_veterinario
-        ).filter(
-            Vaccine.id_pet == pet_id
-        ).order_by(
+        ).filter(Vaccine.id_pet == pet_id)
+
+        total = base_q.count()
+        rows  = base_q.order_by(
             Vaccine.data_aplicacao.desc(),
             Vaccine.id_aplicacao_vacina.desc()
-        ).all()
+        ).limit(limit).offset(offset).all()
 
         resultados = []
         for vaccine, appointment, veterinario in rows:
@@ -340,7 +352,10 @@ def listar_vacinas(pet_id, current_user):
         return jsonify({
             'success': True,
             'data': resultados,
-            'count': len(resultados)
+            'count': len(resultados),
+            'total': total,
+            'limit': limit,
+            'offset': offset,
         }), 200
     except Exception as e:
         return jsonify({

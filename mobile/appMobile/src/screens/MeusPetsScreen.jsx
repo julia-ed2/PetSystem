@@ -2,15 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/colors';
-import { api } from '../service/api';
+import { useApp } from '../context/AppContext';
 import Loading from '../components/Loading';
 
 export default function MeusPetsScreen({ navigation }) {
-  const [pets, setPets]     = useState([]);
-  const [loading, setLoad]  = useState(true);
+  const { pets, loadPets } = useApp();
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.getPets().then(p => { setPets(p); setLoad(false); });
+    loadPets().finally(() => setLoading(false));
   }, []);
 
   if (loading) return <Loading />;
@@ -26,7 +26,7 @@ export default function MeusPetsScreen({ navigation }) {
 
       <FlatList
         data={pets}
-        keyExtractor={p => p.id}
+        keyExtractor={p => String(p.id)}
         contentContainerStyle={styles.list}
         renderItem={({ item }) => (
           <TouchableOpacity
@@ -61,11 +61,11 @@ const styles = StyleSheet.create({
   header:  { backgroundColor: COLORS.pink, flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12, paddingTop: 20 },
   backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
   titulo:  { color: COLORS.white, fontSize: 18, fontWeight: '700' },
-  list:    { padding: 16 },
+  list:    { padding: 16, flexGrow: 1 },
   card:    { backgroundColor: COLORS.white, borderRadius: 14, padding: 16, flexDirection: 'row', alignItems: 'center', marginBottom: 10, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 1 },
   avatarPet:{ width: 46, height: 46, borderRadius: 23, backgroundColor: COLORS.pinkLight, alignItems: 'center', justifyContent: 'center' },
   petNome: { fontSize: 15, fontWeight: '700', color: COLORS.black },
   petInfo: { fontSize: 12, color: COLORS.gray400, marginTop: 3 },
-  vazio:   { alignItems: 'center', justifyContent: 'center', paddingTop: 60 },
+  vazio:   { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 60 },
   vazioText:{ color: COLORS.gray400, fontSize: 14, marginTop: 10 },
 });

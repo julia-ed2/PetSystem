@@ -11,8 +11,6 @@ from models import db
 migrate = Migrate()
 jwt = JWTManager()
 
-_inventory_columns_checked = False
-
 DEFAULT_VETERINARIOS = [
     {
         'nome': 'Dr. Pedro Mendes',
@@ -53,9 +51,6 @@ def ensure_default_veterinarios(app):
 
 
 def ensure_inventory_columns(app):
-    global _inventory_columns_checked
-    if _inventory_columns_checked:
-        return
     with app.app_context():
         try:
             inspector = inspect(db.engine)
@@ -71,7 +66,6 @@ def ensure_inventory_columns(app):
                 db.session.execute(text("UPDATE LANCAMENTO_FINANCEIRO SET status = 'Pago' WHERE status IS NULL OR status = ''"))
 
             db.session.commit()
-            _inventory_columns_checked = True
         except Exception as e:
             db.session.rollback()
             print(f'⚠️  Warning: Could not ensure inventory columns: {e}')

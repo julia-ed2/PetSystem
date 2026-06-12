@@ -7,11 +7,11 @@
 -- TIER 1: Base Entities
 -- ============================================
 
--- ADMIN USERS
+-- ADMIN USERS (password: admin123)
 INSERT INTO USUARIO (nome, login, senha_hash, tipo_usuario, ativo, data_criacao) VALUES
-('Admin Principal', 'admin@petsystem.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5EQVz5zrW2eFi', 'admin', TRUE, NOW()),
-('Gerente Clínica', 'gerente@petsystem.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5EQVz5zrW2eFi', 'gerente', TRUE, NOW()),
-('Atendente João', 'joao@petsystem.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5EQVz5zrW2eFi', 'atendente', TRUE, NOW());
+('Admin Principal', 'admin@petsystem.com', 'pbkdf2:sha256:1000000$vBRSnNm4s8kuOhIh$835d77141788a2d1aca68ca4b4f3eaa54dc1361256b2cf82ed139e34f793b4f8', 'admin', TRUE, NOW()),
+('Gerente Clínica', 'gerente@petsystem.com', 'pbkdf2:sha256:1000000$vBRSnNm4s8kuOhIh$835d77141788a2d1aca68ca4b4f3eaa54dc1361256b2cf82ed139e34f793b4f8', 'gerente', TRUE, NOW()),
+('Atendente João', 'joao@petsystem.com', 'pbkdf2:sha256:1000000$vBRSnNm4s8kuOhIh$835d77141788a2d1aca68ca4b4f3eaa54dc1361256b2cf82ed139e34f793b4f8', 'atendente', TRUE, NOW());
 
 -- TUTORS
 INSERT INTO TUTOR (nome, cpf, telefone, endereco, ativo, data_criacao) VALUES
@@ -19,6 +19,13 @@ INSERT INTO TUTOR (nome, cpf, telefone, endereco, ativo, data_criacao) VALUES
 ('João Santos', '98765432100', '11988887777', 'Avenida B, 200 - São Paulo', TRUE, NOW()),
 ('Ana Costa', '55544433322', '11977776666', 'Rua C, 300 - São Paulo', TRUE, NOW()),
 ('Carlos Oliveira', '11122233344', '11966665555', 'Avenida D, 400 - São Paulo', TRUE, NOW());
+
+-- CLIENT USERS (linked to tutors above — password: cliente123)
+INSERT INTO USUARIO (nome, login, senha_hash, tipo_usuario, ativo, id_tutor, data_criacao) VALUES
+('Maria Silva',    'maria@petsystem.com',   'pbkdf2:sha256:1000000$mH0TqPkku1AyDGMZ$226fa80f70925b62160516c32da01505e528e1f7ed14cd41ddbddebff8093be7', 'cliente', TRUE, (SELECT id_tutor FROM TUTOR WHERE cpf='12345678901'), NOW()),
+('João Santos',    'joaos@petsystem.com',   'pbkdf2:sha256:1000000$mH0TqPkku1AyDGMZ$226fa80f70925b62160516c32da01505e528e1f7ed14cd41ddbddebff8093be7', 'cliente', TRUE, (SELECT id_tutor FROM TUTOR WHERE cpf='98765432100'), NOW()),
+('Ana Costa',      'ana@petsystem.com',     'pbkdf2:sha256:1000000$mH0TqPkku1AyDGMZ$226fa80f70925b62160516c32da01505e528e1f7ed14cd41ddbddebff8093be7', 'cliente', TRUE, (SELECT id_tutor FROM TUTOR WHERE cpf='55544433322'), NOW()),
+('Carlos Oliveira','carlos@petsystem.com',  'pbkdf2:sha256:1000000$mH0TqPkku1AyDGMZ$226fa80f70925b62160516c32da01505e528e1f7ed14cd41ddbddebff8093be7', 'cliente', TRUE, (SELECT id_tutor FROM TUTOR WHERE cpf='11122233344'), NOW());
 
 -- VETERINARIANS
 INSERT INTO VETERINARIO (nome, crmv, telefone, email, ativo, data_criacao) VALUES
