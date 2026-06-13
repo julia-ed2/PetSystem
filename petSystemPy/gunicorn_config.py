@@ -10,7 +10,7 @@ bind = '0.0.0.0:5000'
 backlog = 2048
 
 # Worker processes
-workers = max(2, multiprocessing.cpu_count() * 2 - 1)
+workers = int(os.getenv('WEB_CONCURRENCY', 1))
 worker_class = 'sync'
 worker_connections = 1000
 timeout = 30

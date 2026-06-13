@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS USUARIO (
   nome VARCHAR(150) NOT NULL,
   login VARCHAR(50) NOT NULL UNIQUE,
   senha_hash VARCHAR(255) NOT NULL,
-  tipo_usuario ENUM('admin','veterinario','atendente','gerente') NOT NULL,
+  tipo_usuario ENUM('admin','veterinario','atendente','gerente','cliente') NOT NULL,
   ativo BOOLEAN DEFAULT TRUE,
   id_tutor INT,
   data_criacao DATETIME DEFAULT CURRENT_TIMESTAMP,

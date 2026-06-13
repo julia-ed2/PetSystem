@@ -222,7 +222,9 @@ INSERT INTO RECADO_INTERNO (id_usuario_remetente, titulo, mensagem, data_criacao
 (1, 'Importante: Reunião de Equipe', 'Reunião amanhã às 14h. Confirmar presença.', NOW(), TRUE),
 (2, 'Lembrete: Reposição de Vacinas', 'Verificar estoque de vacinas. Fazer pedido se necessário.', NOW(), TRUE);
 
-INSERT INTO RECADO_DESTINATARIO (id_recado, id_usuario_destinatario, lido, data_leitura) VALUES
-(1, 2, TRUE, '2025-04-24 14:00:00'),
-(1, 3, FALSE, NULL),
-(2, 3, TRUE, '2025-04-24 09:30:00');
+INSERT INTO RECADO_DESTINATARIO (id_recado, id_usuario_destinatario, lido, data_leitura)
+SELECT id_recado, 2, TRUE, '2025-04-24 14:00:00' FROM RECADO_INTERNO WHERE titulo = 'Importante: Reunião de Equipe' LIMIT 1;
+INSERT INTO RECADO_DESTINATARIO (id_recado, id_usuario_destinatario, lido, data_leitura)
+SELECT id_recado, 3, FALSE, NULL FROM RECADO_INTERNO WHERE titulo = 'Importante: Reunião de Equipe' LIMIT 1;
+INSERT INTO RECADO_DESTINATARIO (id_recado, id_usuario_destinatario, lido, data_leitura)
+SELECT id_recado, 3, TRUE, '2025-04-24 09:30:00' FROM RECADO_INTERNO WHERE titulo = 'Lembrete: Reposição de Vacinas' LIMIT 1;
