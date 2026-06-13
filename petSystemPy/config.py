@@ -18,26 +18,33 @@ class Config:
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
 
 
+def _build_db_uri(default_host='localhost', default_user='root', default_pass='petsystem_dev', default_db='pet_system'):
+    """Build SQLAlchemy URI from DATABASE_URL or individual DB_* vars."""
+    url = os.getenv('DATABASE_URL')
+    if url:
+        return url
+    host = os.getenv('DB_HOST', default_host)
+    if host == 'mysql':
+        host = '127.0.0.1'
+    return (
+        f"mysql+pymysql://{os.getenv('DB_USER', default_user)}:"
+        f"{os.getenv('DB_PASS', default_pass)}@"
+        f"{host}:{os.getenv('DB_PORT', '3306')}/"
+        f"{os.getenv('DB_NAME', default_db)}"
+    )
+
+# SSL options for TiDB Cloud Serverless (ignored when connecting to local MySQL)
+_SSL_OPTS = {'connect_args': {'ssl': {'verify_cert': False, 'verify_identity': False}}}
+
+
 class DevelopmentConfig(Config):
     """Development configuration"""
     DEBUG = True
     TESTING = False
     FLASK_ENV = 'development'
     SQLALCHEMY_ECHO = False
-    
-    # Get database config from environment
-    _db_host = os.getenv('DB_HOST', 'localhost')
-    # Normalize 'mysql' (Docker DNS) to localhost when running on host
-    if _db_host == 'mysql':
-        _db_host = '127.0.0.1'
-    
-    SQLALCHEMY_DATABASE_URI = (
-        f"mysql+pymysql://{os.getenv('DB_USER', 'root')}:"
-        f"{os.getenv('DB_PASS', 'petsystem_dev')}@"
-        f"{_db_host}:"
-        f"{os.getenv('DB_PORT', '3306')}/"
-        f"{os.getenv('DB_NAME', 'pet_system')}"
-    )
+    SQLALCHEMY_DATABASE_URI = _build_db_uri()
+    SQLALCHEMY_ENGINE_OPTIONS = _SSL_OPTS
 
 
 class ProductionConfig(Config):
@@ -46,14 +53,11 @@ class ProductionConfig(Config):
     TESTING = False
     FLASK_ENV = 'production'
     SQLALCHEMY_ECHO = False
-    SQLALCHEMY_DATABASE_URI = (
-        f"mysql+pymysql://{os.getenv('DB_USER')}:"
-        f"{os.getenv('DB_PASS')}@"
-        f"{os.getenv('DB_HOST')}:"
-        f"{os.getenv('DB_PORT', '3306')}/"
-        f"{os.getenv('DB_NAME')}"
+    SQLALCHEMY_DATABASE_URI = _build_db_uri(
+        default_host='', default_user='', default_pass='', default_db=''
     )
     SQLALCHEMY_ENGINE_OPTIONS = {
+        **_SSL_OPTS,
         'pool_size': 20,
         'max_overflow': 10,
         'pool_timeout': 10,
