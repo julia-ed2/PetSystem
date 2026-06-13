@@ -6,35 +6,42 @@
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "jsEngine": "hermes",
-
     "icon": "./src/assets/logoVet (1).png",
-
     "splash": {
       "image": "./src/assets/logoVet (1).png",
       "resizeMode": "cover",
       "backgroundColor": "#7B2FBE"
     },
-
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "br.com.petsystem.app"
     },
-
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./src/assets/logoVet (1).jpeg",
+        "foregroundImage": "./src/assets/logoVet (1).png",
         "backgroundColor": "#7B2FBE"
       },
       "package": "br.com.petsystem.app"
     },
-
     "web": {
-      "favicon": "./src/assets/logoVet (1).jpeg"
+      "favicon": "./src/assets/logoVet (1).png"
     },
-
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "sdkVersion": "54.0.0",
-    "platforms": ["ios", "android"],
-    "plugins": ["expo-font", "expo-secure-store"]
+    "platforms": [
+      "ios",
+      "android"
+    ],
+    "plugins": [
+      "expo-font",
+      "expo-secure-store"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "4e36431b-8169-4f97-a73c-f0697243749e"
+      }
+    }
   }
 }
