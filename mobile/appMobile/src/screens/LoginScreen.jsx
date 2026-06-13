@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { COLORS } from '../constants/colors';
 import { api } from '../service/api';
-import logoPet from '../assets/logoVet (1).jpeg';
+import logoPet from '../assets/logoVet (1).png';
 
 
 export default function LoginScreen({ navigation }) {
