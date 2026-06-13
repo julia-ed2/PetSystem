@@ -69,7 +69,7 @@ export default function App() {
 
     const handleAddNewAppointment = async (appointmentData) => {
         const hora = appointmentData.time
-            ? `${appointmentData.date}T${appointmentData.time.length === 5 ? `${appointmentData.time}:00` : appointmentData.time}`
+            ? (appointmentData.time.length === 5 ? `${appointmentData.time}:00` : appointmentData.time)
             : '';
 
         await agendamentosService.create({

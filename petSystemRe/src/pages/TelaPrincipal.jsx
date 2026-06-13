@@ -141,7 +141,7 @@ export default function TelaPrincipal({ onGoToLogin, onGoToFormAgenda, appointme
         <div className="flex-1 flex overflow-hidden">
             <div className="flex flex-1">
                         <div className="flex-1 p-8 overflow-y-auto">
-                            {/* KPIs financeiros do mês */}
+                            {/* KPIs financeiros do mês  }
                             <section className="mb-6">
                                 <div className="grid grid-cols-3 gap-4">
                                     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-5">
@@ -163,7 +163,7 @@ export default function TelaPrincipal({ onGoToLogin, onGoToFormAgenda, appointme
                                         </p>
                                     </div>
                                 </div>
-                            </section>
+                            </section>*/}
 
                             {/* Alertas de estoque mínimo */}
                             {alertasEstoque.length > 0 && (

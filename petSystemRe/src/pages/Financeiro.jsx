@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import CategoriaDropdown from "../components/financeiro/CategoriaDropdown";
 import ModalInserirGasto from "../components/financeiro/ModalInserirGasto";
-import FinanceiroPrint from "../components/financeiro/FinanceiroPrint";
 import { useAuth } from '../hooks/useAuth';
 import { adicionarLancamento, atualizarStatusLancamento, listarLancamentos } from '../services/financeiroService';
 
@@ -66,12 +65,16 @@ export default function Financeiro({ agendamentos = [], prontuarios = [], vendas
 
   async function carregar() {
     setLoading(true);
-    const dataApi = await listarLancamentos({ ano: new Date().getFullYear() });
+    
+    const dataApi = await listarLancamentos();
     setLancamentos(dataApi);
     setLoading(false);
   }
 
-  useEffect(() => { carregar(); }, []);
+  // Recarrega quando agendamentos mudam (quando novos agendamentos são criados)
+  useEffect(() => { 
+    carregar(); 
+  }, [agendamentos, prontuarios, vendas, saidasEstoque]);
 
   const mesNum = MESES_NUM[mesSel];
 
@@ -133,21 +136,55 @@ export default function Financeiro({ agendamentos = [], prontuarios = [], vendas
     ));
   }
 
+  //imprime relatório
   function handleImprimir() {
-    window.print();
+    const conteudo = `
+      <html><head><title>Relatório Financeiro - ${mesSel}</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 32px; color: #111; }
+        h1 { color: #7c3aed; }
+        h2 { color: #555; font-size: 14px; margin-top: 24px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+        th { text-align: left; font-size: 12px; text-transform: uppercase; color: #888; border-bottom: 1px solid #eee; padding: 8px 12px; }
+        td { padding: 10px 12px; border-bottom: 1px solid #f3f4f6; font-size: 14px; }
+        .receita { color: #16a34a; font-weight: bold; }
+        .gasto   { color: #dc2626; font-weight: bold; }
+        .totais  { margin-top: 24px; display: flex; gap: 32px; }
+        .card    { border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; min-width: 180px; }
+        .label   { font-size: 12px; color: #7c3aed; font-weight: bold; }
+        .valor   { font-size: 24px; font-weight: bold; margin-top: 8px; }
+      </style></head><body>
+      <h1>PetSystem — Controle Financeiro</h1>
+      <p>Relatório de <strong>${mesSel}</strong></p>
+      <div class="totais">
+        <div class="card"><div class="label">Receita do mês</div><div class="valor">R$ ${fmt(receita)}</div></div>
+        <div class="card"><div class="label">Gastos do mês</div><div class="valor">R$ ${fmt(gastos)}</div></div>
+        <div class="card"><div class="label">Caixa</div><div class="valor">R$ ${fmt(caixa)}</div></div>
+      </div>
+      <table>
+        <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Status</th></tr></thead>
+        <tbody>
+          ${lancamentosFiltrados.map(l => `
+            <tr>
+              <td>${l.data}</td>
+              <td>${l.descricao}</td>
+              <td>${l.categoria}</td>
+              <td class="${l.tipo === "gasto" ? "gasto" : "receita"}">${l.tipo === "gasto" ? "- " : ""}R$ ${fmt(l.valor)}</td>
+              <td>${l.status}</td>
+            </tr>`).join("")}
+        </tbody>
+      </table>
+      </body></html>
+    `;
+    const win = window.open("", "_blank");
+    win.document.body.innerHTML = conteudo;
+    win.document.close();
+    win.print();
   }
 
   return (
     <div className="flex-1 min-h-screen bg-gray-100">
-      <FinanceiroPrint
-        lancamentos={lancamentosFiltrados}
-        receita={receita}
-        gastos={gastos}
-        caixa={caixa}
-        mes={mesSel}
-        categoria={catFiltro}
-      />
-      <div className="screen-only px-8 py-8 w-full">
+      <div className="px-8 py-8 w-full">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Controle Financeiro</h1>
           {podeEscrever && <button
