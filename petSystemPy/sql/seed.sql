@@ -8,30 +8,30 @@
 -- ============================================
 
 -- ADMIN USERS (password: admin123)
-INSERT INTO USUARIO (nome, login, senha_hash, tipo_usuario, ativo, data_criacao) VALUES
-('Admin Principal', 'admin@petsystem.com', 'pbkdf2:sha256:1000000$vBRSnNm4s8kuOhIh$835d77141788a2d1aca68ca4b4f3eaa54dc1361256b2cf82ed139e34f793b4f8', 'admin', TRUE, NOW()),
-('Gerente Clínica', 'gerente@petsystem.com', 'pbkdf2:sha256:1000000$vBRSnNm4s8kuOhIh$835d77141788a2d1aca68ca4b4f3eaa54dc1361256b2cf82ed139e34f793b4f8', 'gerente', TRUE, NOW()),
-('Atendente João', 'joao@petsystem.com', 'pbkdf2:sha256:1000000$vBRSnNm4s8kuOhIh$835d77141788a2d1aca68ca4b4f3eaa54dc1361256b2cf82ed139e34f793b4f8', 'atendente', TRUE, NOW());
+INSERT INTO USUARIO (nome, login, senha_hash, tipo_usuario, ativo) VALUES
+('Admin Principal', 'admin@petsystem.com', 'pbkdf2:sha256:1000000$vBRSnNm4s8kuOhIh$835d77141788a2d1aca68ca4b4f3eaa54dc1361256b2cf82ed139e34f793b4f8', 'admin', TRUE),
+('Gerente Clínica', 'gerente@petsystem.com', 'pbkdf2:sha256:1000000$vBRSnNm4s8kuOhIh$835d77141788a2d1aca68ca4b4f3eaa54dc1361256b2cf82ed139e34f793b4f8', 'gerente', TRUE),
+('Atendente João', 'joao@petsystem.com', 'pbkdf2:sha256:1000000$vBRSnNm4s8kuOhIh$835d77141788a2d1aca68ca4b4f3eaa54dc1361256b2cf82ed139e34f793b4f8', 'atendente', TRUE);
 
 -- TUTORS
-INSERT INTO TUTOR (nome, cpf, telefone, endereco, ativo, data_criacao) VALUES
-('Maria Silva', '12345678901', '11999998888', 'Rua A, 100 - São Paulo', TRUE, NOW()),
-('João Santos', '98765432100', '11988887777', 'Avenida B, 200 - São Paulo', TRUE, NOW()),
-('Ana Costa', '55544433322', '11977776666', 'Rua C, 300 - São Paulo', TRUE, NOW()),
-('Carlos Oliveira', '11122233344', '11966665555', 'Avenida D, 400 - São Paulo', TRUE, NOW());
+INSERT INTO TUTOR (nome, cpf, telefone, endereco, ativo) VALUES
+('Maria Silva', '12345678901', '11999998888', 'Rua A, 100 - São Paulo', TRUE),
+('João Santos', '98765432100', '11988887777', 'Avenida B, 200 - São Paulo', TRUE),
+('Ana Costa', '55544433322', '11977776666', 'Rua C, 300 - São Paulo', TRUE),
+('Carlos Oliveira', '11122233344', '11966665555', 'Avenida D, 400 - São Paulo', TRUE);
 
 -- CLIENT USERS (linked to tutors above — password: cliente123)
-INSERT INTO USUARIO (nome, login, senha_hash, tipo_usuario, ativo, id_tutor, data_criacao) VALUES
-('Maria Silva',    'maria@petsystem.com',   'pbkdf2:sha256:1000000$mH0TqPkku1AyDGMZ$226fa80f70925b62160516c32da01505e528e1f7ed14cd41ddbddebff8093be7', 'cliente', TRUE, (SELECT id_tutor FROM TUTOR WHERE cpf='12345678901'), NOW()),
-('João Santos',    'joaos@petsystem.com',   'pbkdf2:sha256:1000000$mH0TqPkku1AyDGMZ$226fa80f70925b62160516c32da01505e528e1f7ed14cd41ddbddebff8093be7', 'cliente', TRUE, (SELECT id_tutor FROM TUTOR WHERE cpf='98765432100'), NOW()),
-('Ana Costa',      'ana@petsystem.com',     'pbkdf2:sha256:1000000$mH0TqPkku1AyDGMZ$226fa80f70925b62160516c32da01505e528e1f7ed14cd41ddbddebff8093be7', 'cliente', TRUE, (SELECT id_tutor FROM TUTOR WHERE cpf='55544433322'), NOW()),
-('Carlos Oliveira','carlos@petsystem.com',  'pbkdf2:sha256:1000000$mH0TqPkku1AyDGMZ$226fa80f70925b62160516c32da01505e528e1f7ed14cd41ddbddebff8093be7', 'cliente', TRUE, (SELECT id_tutor FROM TUTOR WHERE cpf='11122233344'), NOW());
+INSERT INTO USUARIO (nome, login, senha_hash, tipo_usuario, ativo, id_tutor) VALUES
+('Maria Silva',    'maria@petsystem.com',   'pbkdf2:sha256:1000000$mH0TqPkku1AyDGMZ$226fa80f70925b62160516c32da01505e528e1f7ed14cd41ddbddebff8093be7', 'cliente', TRUE, (SELECT id_tutor FROM TUTOR WHERE cpf='12345678901')),
+('João Santos',    'joaos@petsystem.com',   'pbkdf2:sha256:1000000$mH0TqPkku1AyDGMZ$226fa80f70925b62160516c32da01505e528e1f7ed14cd41ddbddebff8093be7', 'cliente', TRUE, (SELECT id_tutor FROM TUTOR WHERE cpf='98765432100')),
+('Ana Costa',      'ana@petsystem.com',     'pbkdf2:sha256:1000000$mH0TqPkku1AyDGMZ$226fa80f70925b62160516c32da01505e528e1f7ed14cd41ddbddebff8093be7', 'cliente', TRUE, (SELECT id_tutor FROM TUTOR WHERE cpf='55544433322')),
+('Carlos Oliveira','carlos@petsystem.com',  'pbkdf2:sha256:1000000$mH0TqPkku1AyDGMZ$226fa80f70925b62160516c32da01505e528e1f7ed14cd41ddbddebff8093be7', 'cliente', TRUE, (SELECT id_tutor FROM TUTOR WHERE cpf='11122233344'));
 
 -- VETERINARIANS
-INSERT INTO VETERINARIO (nome, crmv, telefone, email, ativo, data_criacao) VALUES
-('Dr. Pedro Mendes', 'CRMV/SP 1234', '11999995555', 'pedro@clinica.com', TRUE, NOW()),
-('Dra. Fernanda Lima', 'CRMV/SP 5678', '11999994444', 'fernanda@clinica.com', TRUE, NOW()),
-('Dr. Lucas Ferreira', 'CRMV/SP 9012', '11999993333', 'lucas@clinica.com', TRUE, NOW());
+INSERT INTO VETERINARIO (nome, crmv, telefone, email, ativo) VALUES
+('Dr. Pedro Mendes', 'CRMV/SP 1234', '11999995555', 'pedro@clinica.com', TRUE),
+('Dra. Fernanda Lima', 'CRMV/SP 5678', '11999994444', 'fernanda@clinica.com', TRUE),
+('Dr. Lucas Ferreira', 'CRMV/SP 9012', '11999993333', 'lucas@clinica.com', TRUE);
 
 -- SERVICES
 INSERT INTO SERVICO (nome, descricao, valor, ativo) VALUES
@@ -78,13 +78,13 @@ INSERT INTO PRODUTO (nome, marca, categoria, descricao, quantidade_estoque, esto
 -- ============================================
 
 -- PETS
-INSERT INTO PET (id_tutor, nome, especie, raca, idade, sexo, peso, observacoes, ativo, data_criacao) VALUES
-(1, 'Rex', 'cao', 'Labrador', 3, 'macho', 35.50, 'Cão saudável, muito ativo', TRUE, NOW()),
-(1, 'Luna', 'gato', 'Siamês', 2, 'femea', 3.20, 'Gato dócil e carinhoso', TRUE, NOW()),
-(2, 'Max', 'cao', 'Poodle', 5, 'macho', 8.50, 'Pequeno, diagnóstico de diabetes', TRUE, NOW()),
-(2, 'Bella', 'gato', 'Persa', 4, 'femea', 4.00, 'Alergias sazonais', TRUE, NOW()),
-(3, 'Charlie', 'cao', 'Golden Retriever', 1, 'macho', 28.00, 'Filhote, primeira vacina', TRUE, NOW()),
-(4, 'Mimi', 'gato', 'Angorá', 3, 'femea', 3.80, 'Frequente visitante da clínica', TRUE, NOW());
+INSERT INTO PET (id_tutor, nome, especie, raca, idade, sexo, peso, observacoes, ativo) VALUES
+(1, 'Rex', 'cao', 'Labrador', 3, 'macho', 35.50, 'Cão saudável, muito ativo', TRUE),
+(1, 'Luna', 'gato', 'Siamês', 2, 'femea', 3.20, 'Gato dócil e carinhoso', TRUE),
+(2, 'Max', 'cao', 'Poodle', 5, 'macho', 8.50, 'Pequeno, diagnóstico de diabetes', TRUE),
+(2, 'Bella', 'gato', 'Persa', 4, 'femea', 4.00, 'Alergias sazonais', TRUE),
+(3, 'Charlie', 'cao', 'Golden Retriever', 1, 'macho', 28.00, 'Filhote, primeira vacina', TRUE),
+(4, 'Mimi', 'gato', 'Angorá', 3, 'femea', 3.80, 'Frequente visitante da clínica', TRUE);
 
 -- MEDICAL RECORDS (Prontuários)
 INSERT INTO PRONTUARIO (id_pet, data_abertura, observacoes_gerais) VALUES
@@ -122,7 +122,7 @@ INSERT INTO AGENDAMENTO (id_pet, id_veterinario, data, hora, tipo_agendamento, s
 -- PRESCRIPTIONS
 INSERT INTO RECEITA (id_atendimento, data_emissao, orientacoes) VALUES
 (3, '2025-04-22', 'Aplicar medicação conforme descrito. Retornar para avaliação em 30 dias.'),
-(6, '2025-04-24', 'Medicação por 7 dias. Dieta leve por 48h. Se piorar, retornar imediatamente.');
+(5, '2025-04-24', 'Medicação por 7 dias. Dieta leve por 48h. Se piorar, retornar imediatamente.');
 
 -- PRESCRIPTION ITEMS
 INSERT INTO ITEM_RECEITA (id_receita, medicamento, dosagem, frequencia, duracao, observacoes) VALUES
@@ -144,12 +144,12 @@ INSERT INTO LAUDO (id_pet, id_atendimento, id_veterinario, titulo, descricao, da
 -- PROCEDURES PERFORMED
 INSERT INTO ATENDIMENTO_PROCEDIMENTO (id_atendimento, id_procedimento, observacoes, valor_cobrado) VALUES
 (1, 2, 'Limpeza geral dos dentes realizada', 150.00),
-(6, 1, 'Tratamento local com antisséptico', 75.00);
+(5, 1, 'Tratamento local com antisséptico', 75.00);
 
 -- EXAMS REQUESTED
 INSERT INTO ATENDIMENTO_EXAME (id_atendimento, id_exame, resultado, data_realizacao, observacoes) VALUES
 (3, 1, 'Hemácias 5.2M, Hemoglobina 13.5g/dL, Glóbulos Brancos 7.5K', '2025-04-22', 'Exame dentro dos valores normais'),
-(6, 1, 'Hemácias 4.8M, Hemoglobina 12.8g/dL', '2025-04-24', 'Leve desidratação');
+(5, 1, 'Hemácias 4.8M, Hemoglobina 12.8g/dL', '2025-04-24', 'Leve desidratação');
 
 -- ============================================
 -- TIER 5: Internations
