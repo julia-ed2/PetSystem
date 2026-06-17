@@ -25,6 +25,21 @@ const CadastrarUsuario = lazy(() => import('./cadastros/CadastroUsuario'));
 const PerfilUsuario    = lazy(() => import('./cadastros/PerfilUsuario'));
 
 
+// Roles com acesso ao painel web (clientes usam o app mobile)
+const STAFF_ROLES = ['admin', 'gerente', 'atendente', 'veterinario'];
+// Roles com acesso a estoque e financeiro
+const MANAGEMENT_ROLES = ['admin', 'gerente'];
+// Roles com acesso a cadastros
+const RECEPTION_ROLES = ['admin', 'gerente', 'atendente'];
+
+function RoleGuard({ allowedRoles, children }) {
+    const { user } = useAuth();
+    if (!allowedRoles.includes(user?.tipo)) {
+        return <Navigate replace to="/dashboard" />;
+    }
+    return children;
+}
+
 export default function App() {
     const { user, logout } = useAuth();
     const [appointments, setAppointments] = useState([]);
@@ -108,12 +123,32 @@ export default function App() {
                     <Route path="prontuarios" element={<ProntuariosWrapper />} />
                     <Route path="prontuarios/:id" element={<ProntuarioDetalheWrapper isAdmin={isAdmin} />} />
                     <Route path="prontuarios/:id/editar" element={<EditarPetWrapper />} />
-                    <Route path="cadastros" element={<CadastrosWrapper isAdmin={isAdmin} />} />
-                    <Route path="cadastros/novo" element={<CadastrarClienteWrapper />} />
+                    <Route path="cadastros" element={
+                        <RoleGuard allowedRoles={RECEPTION_ROLES}>
+                            <CadastrosWrapper isAdmin={isAdmin} />
+                        </RoleGuard>
+                    } />
+                    <Route path="cadastros/novo" element={
+                        <RoleGuard allowedRoles={RECEPTION_ROLES}>
+                            <CadastrarClienteWrapper />
+                        </RoleGuard>
+                    } />
                     <Route path="cadastros/novo-usuario" element={<CadastrarUsuarioWrapper isAdmin={isAdmin} />} />
-                    <Route path="cadastros/:id" element={<PerfilUsuarioWrapper isAdmin={isAdmin} />} />
-                    <Route path="estoque" element={<EstoqueWrapper canManage={canManageOperational} />} />
-                    <Route path="financeiro" element={<FinanceiroWrapper appointments={appointments} canManage={canManageOperational} />} />
+                    <Route path="cadastros/:id" element={
+                        <RoleGuard allowedRoles={RECEPTION_ROLES}>
+                            <PerfilUsuarioWrapper isAdmin={isAdmin} />
+                        </RoleGuard>
+                    } />
+                    <Route path="estoque" element={
+                        <RoleGuard allowedRoles={MANAGEMENT_ROLES}>
+                            <EstoqueWrapper canManage={canManageOperational} />
+                        </RoleGuard>
+                    } />
+                    <Route path="financeiro" element={
+                        <RoleGuard allowedRoles={MANAGEMENT_ROLES}>
+                            <FinanceiroWrapper appointments={appointments} canManage={canManageOperational} />
+                        </RoleGuard>
+                    } />
                 </Route>
             </Routes>
         </BrowserRouter>
@@ -123,6 +158,36 @@ export default function App() {
 function DashboardLayout({ onLogout }) {
     const navigate = useNavigate();
     const location = useLocation();
+    const { user, isAuthenticated, loading } = useAuth();
+
+    if (loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-[#F0F2F5]">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#8A2BE2]" />
+            </div>
+        );
+    }
+
+    if (!isAuthenticated) {
+        return <Navigate to="/" replace />;
+    }
+
+    if (user?.tipo === 'cliente') {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-[#F0F2F5]">
+                <div className="bg-white rounded-2xl shadow-sm p-10 text-center max-w-sm">
+                    <p className="text-2xl font-bold text-[#8A2BE2] mb-2">Acesso restrito</p>
+                    <p className="text-gray-500 mb-6">O painel web é exclusivo para funcionários da clínica. Use o aplicativo mobile para acessar suas informações.</p>
+                    <button
+                        onClick={async () => { await onLogout?.(); navigate('/'); }}
+                        className="bg-[#8A2BE2] text-white px-6 py-2 rounded-full font-bold hover:bg-purple-700 transition-colors"
+                    >
+                        Voltar ao login
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     const activePage = getActivePageFromPath(location.pathname);
 
@@ -145,6 +210,7 @@ function DashboardLayout({ onLogout }) {
         <div className="flex min-h-screen bg-[#F0F2F5]">
             <Sidebar
                 activePage={activePage}
+                userRole={user?.tipo}
                 onNavigate={handleMenuNavigate}
                 onLogout={async () => {
                     await onLogout?.();

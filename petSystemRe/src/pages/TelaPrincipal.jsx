@@ -9,6 +9,10 @@ import { listarProdutos, registrarSaida } from '../services/estoqueService';
 import { tutoresService } from '../services/tutoresService';
 import { adicionarLancamento, listarLancamentos } from '../services/financeiroService';
 import { Syringe, UserPlus, ArrowUpRight, Plus, Calendar as CalendarIcon } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
+
+const MANAGEMENT_ROLES = ['admin', 'gerente'];
+const RECEPTION_ROLES  = ['admin', 'gerente', 'atendente'];
 
 function fmtBrl(v) {
     return Number(Math.abs(v)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -17,6 +21,10 @@ function fmtBrl(v) {
 
 export default function TelaPrincipal({ onGoToLogin, onGoToFormAgenda, appointments }) {
     const navigate = useNavigate();
+    const { user } = useAuth();
+    const role = user?.tipo || '';
+    const canManage = MANAGEMENT_ROLES.includes(role);
+    const canRegisterCliente = RECEPTION_ROLES.includes(role);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingPostit, setEditingPostit] = useState(null);
     const [modalSaida, setModalSaida] = useState(false);
@@ -165,8 +173,8 @@ export default function TelaPrincipal({ onGoToLogin, onGoToFormAgenda, appointme
                                 </div>
                             </section>*/}
 
-                            {/* Alertas de estoque mínimo */}
-                            {alertasEstoque.length > 0 && (
+                            {/* Alertas de estoque mínimo — apenas admin/gerente */}
+                            {canManage && alertasEstoque.length > 0 && (
                                 <section className="mb-6 bg-yellow-50 border border-yellow-200 rounded-2xl px-6 py-4">
                                     <p className="text-sm font-bold text-yellow-700 mb-2">
                                         Estoque abaixo do mínimo ({alertasEstoque.length} produto{alertasEstoque.length > 1 ? 's' : ''})
@@ -185,9 +193,15 @@ export default function TelaPrincipal({ onGoToLogin, onGoToFormAgenda, appointme
                                 <h3 className="text-black font-bold text-xl mb-6">Atalhos</h3>
                                 <div className="flex flex-wrap gap-4">
                                     <QuickAction label="Registrar vacina" color="bg-[#D84382]" icon={Syringe} onClick={() => navigate('/dashboard/vacinacao')} />
-                                    <QuickAction label="Cadastrar cliente" color="bg-[#D84382]" icon={UserPlus} onClick={() => navigate('/dashboard/cadastros/novo')} />
-                                    <QuickAction label="Registrar saída" color="bg-[#D84382]" icon={ArrowUpRight} onClick={() => setModalSaida(true)} />
-                                    <QuickAction label="Lançamento" color="bg-[#D84382]" icon={Plus} onClick={() => setModalGasto(true)} />
+                                    {canRegisterCliente && (
+                                        <QuickAction label="Cadastrar cliente" color="bg-[#D84382]" icon={UserPlus} onClick={() => navigate('/dashboard/cadastros/novo')} />
+                                    )}
+                                    {canManage && (
+                                        <QuickAction label="Registrar saída" color="bg-[#D84382]" icon={ArrowUpRight} onClick={() => setModalSaida(true)} />
+                                    )}
+                                    {canManage && (
+                                        <QuickAction label="Lançamento" color="bg-[#D84382]" icon={Plus} onClick={() => setModalGasto(true)} />
+                                    )}
                                 </div>
                             </section>
 

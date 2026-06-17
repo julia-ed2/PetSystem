@@ -1,6 +1,16 @@
 import { LayoutGrid, Calendar, Syringe, ClipboardList, Users, Box, Wallet } from 'lucide-react';
 import logoPet from '../assets/logoVet.png';
 
+const MENU_ITEMS = [
+    { label: 'Página Inicial', icon: LayoutGrid, roles: ['admin', 'gerente', 'atendente', 'veterinario'] },
+    { label: 'Agenda',         icon: Calendar,     roles: ['admin', 'gerente', 'atendente', 'veterinario'] },
+    { label: 'Vacinação',      icon: Syringe,      roles: ['admin', 'gerente', 'atendente', 'veterinario'] },
+    { label: 'Prontuários',    icon: ClipboardList, roles: ['admin', 'gerente', 'atendente', 'veterinario'] },
+    { label: 'Cadastros',      icon: Users,        roles: ['admin', 'gerente', 'atendente'] },
+    { label: 'Estoque',        icon: Box,          roles: ['admin', 'gerente'] },
+    { label: 'Financeiro',     icon: Wallet,       roles: ['admin', 'gerente'] },
+];
+
 const MenuItem = ({ label, active, onClick, icon: Icon }) => (
     <button
         onClick={onClick}
@@ -16,17 +26,8 @@ const MenuItem = ({ label, active, onClick, icon: Icon }) => (
     </button>
 );
 
-// MENU LATERAL COMPLETO
-const Sidebar = ({ activePage, onNavigate, onLogout }) => {
-    const menuItems = [
-        { label: 'Página Inicial', icon: LayoutGrid },
-        { label: 'Agenda', icon: Calendar },
-        { label: 'Vacinação', icon: Syringe },
-        { label: 'Prontuários', icon: ClipboardList },
-        { label: 'Cadastros', icon: Users },
-        { label: 'Estoque', icon: Box },
-        { label: 'Financeiro', icon: Wallet }
-    ];
+const Sidebar = ({ activePage, onNavigate, onLogout, userRole }) => {
+    const visibleItems = MENU_ITEMS.filter(item => item.roles.includes(userRole));
 
     return (
         <aside className="w-64 bg-white flex flex-col shadow-xl h-screen sticky top-0 z-10">
@@ -38,7 +39,7 @@ const Sidebar = ({ activePage, onNavigate, onLogout }) => {
             </div>
 
             <nav className="flex-1">
-                {menuItems.map((item) => (
+                {visibleItems.map((item) => (
                     <MenuItem
                         key={item.label}
                         label={item.label}
